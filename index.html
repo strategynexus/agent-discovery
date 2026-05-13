@@ -1,0 +1,2035 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Strategy Ninjas — Agent Discovery</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700;900&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Source+Serif+4:ital,wght@0,400;1,400&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+<script>
+  tailwind.config = {
+    corePlugins: { preflight: true },
+    theme: {
+      extend: {
+        fontFamily: {
+          sans: ['Inter', 'system-ui', 'sans-serif'],
+          display: ['"Space Grotesk"', 'system-ui', 'sans-serif'],
+          serif: ['"Source Serif 4"', 'Georgia', 'serif'],
+          mono: ['JetBrains Mono', 'monospace'],
+        },
+        colors: {
+          // Strategy Ninjas brand palette
+          ink: '#181818',            // primary text + dark bg
+          paper: '#F7F3EA',          // warm cream (NOT pure white)
+          card: '#FFFFFF',           // card bg on light sections
+          darkCard: '#101010',       // card bg on dark sections
+          accent: '#3EB8C8',         // teal — primary accent
+          accentSoft: '#E8F6F8',     // pale teal tint for backgrounds
+          gold: '#BBB469',           // secondary accent (subtle, logo)
+        },
+        boxShadow: {
+          // Signature brutalist hard shadows
+          brut: '6px 6px 0 0 #181818',
+          'brut-sm': '4px 4px 0 0 #181818',
+          'brut-lg': '14px 14px 0 0 #181818',
+          'brut-hover': '8px 8px 0 0 #181818',
+        },
+        borderRadius: {
+          // Override defaults — brand is zero radius everywhere
+          DEFAULT: '0',
+          none: '0',
+          sm: '0',
+          md: '0',
+          lg: '0',
+          xl: '0',
+          '2xl': '0',
+          full: '0',
+        },
+      },
+    },
+  };
+</script>
+<style>
+  /* Strategy Ninjas brand — brutalist-modern. Zero radius, sharp corners, warm cream, teal accent. */
+  body { font-family: 'Inter', sans-serif; background: #F7F3EA; color: #181818; -webkit-font-smoothing: antialiased; }
+  .display { font-family: 'Space Grotesk', system-ui, sans-serif; }
+  .mono { font-family: 'JetBrains Mono', monospace; }
+  .serif { font-family: 'Source Serif 4', Georgia, serif; }
+
+  /* Brand-styled headings — UPPERCASE Space Grotesk Black per brand guide */
+  h1, h2, h3 { font-family: 'Space Grotesk', system-ui, sans-serif; font-weight: 900; text-transform: uppercase; letter-spacing: -0.01em; line-height: 0.95; }
+  h1 { letter-spacing: -0.025em; line-height: 0.92; }
+
+  /* Zero border-radius enforcement (over and above Tailwind config) */
+  button, input, textarea, select, .card, [class*="rounded"] { border-radius: 0 !important; }
+
+  /* Range slider — sharp/square thumb with teal track on active side */
+  input[type=range] { -webkit-appearance: none; background: transparent; }
+  input[type=range]::-webkit-slider-runnable-track { height: 3px; background: #181818; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 22px; width: 22px; background: #3EB8C8; border: 2px solid #181818; box-shadow: 3px 3px 0 0 #181818; margin-top: -10px; cursor: pointer; transition: transform 0.15s; }
+  input[type=range]::-webkit-slider-thumb:hover { transform: translate(-1px, -1px); box-shadow: 5px 5px 0 0 #181818; }
+
+  /* Checkboxes — square accent */
+  input[type=checkbox] { accent-color: #3EB8C8; }
+
+  /* Selection */
+  ::selection { background: #3EB8C8; color: #181818; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  .fade-in { animation: fadeIn 0.3s ease-out; }
+  @keyframes pulse-ring { 0% { transform: scale(0.95); opacity: 1; } 100% { transform: scale(1.6); opacity: 0; } }
+  .pulse-ring { animation: pulse-ring 2s ease-out infinite; }
+  @keyframes spin-slow { to { transform: rotate(360deg); } }
+  .spin-slow { animation: spin-slow 2s linear infinite; }
+  .chip { transition: all 0.15s; }
+  @keyframes scaleIn { 0% { transform: scale(0.3); opacity: 0; } 60% { transform: scale(1.1); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
+  .scale-in { animation: scaleIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); }
+  @keyframes checkDraw { 0% { stroke-dashoffset: 40; } 100% { stroke-dashoffset: 0; } }
+  .check-draw { stroke-dasharray: 40; stroke-dashoffset: 40; animation: checkDraw 0.35s ease-out 0.4s forwards; }
+  @keyframes overlayIn { from { opacity: 0; } to { opacity: 1; } }
+  .overlay-in { animation: overlayIn 0.2s ease-out; }
+  @keyframes labelSlide { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  .label-slide { animation: labelSlide 0.3s ease-out 0.15s both; }
+  @keyframes dotBounce { 0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; } 40% { transform: scale(1); opacity: 1; } }
+  .dot-bounce { animation: dotBounce 1.4s ease-in-out infinite; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useEffect, useMemo } = React;
+
+// ============================================================================
+// CONSTANTS
+// ============================================================================
+
+const STEPS = [
+  { n: 1, label: "Account" },
+  { n: 2, label: "Business" },
+  { n: 3, label: "Identity" },
+  { n: 4, label: "Domains" },
+  { n: 5, label: "Tools" },
+  { n: 6, label: "Review" },
+  { n: 7, label: "Pricing" },
+  { n: 8, label: "Process" },
+];
+
+const TIERS = [
+  {
+    id: "tier_1",
+    name: "Agent Build",
+    price: 2500,
+    deliveryDays: 14,
+    tagline: "Your agent, configured and deployed.",
+    includes: [
+      "Custom agent built to the spec you just defined",
+      "Calendar, email, research, and task coordination",
+      "3-6 tool integrations wired up",
+      "Deployment to your account",
+      "Handoff training session",
+    ],
+  },
+  {
+    id: "tier_2",
+    name: "Phase 1 Full",
+    price: 5000,
+    deliveryDays: 30,
+    tagline: "Agent + strategy. The full Phase 1 engagement.",
+    includes: [
+      "Everything in Agent Build, plus:",
+      "AI Strategy Report tailored to your business",
+      "AI Org Chart — mapping your future AI workforce",
+      "AI Employee Strategy",
+      "Phase 2 Implementation Roadmap",
+    ],
+    recommendedFor: "Teams committing to AI as a long-term operating model.",
+  },
+];
+
+const EMOJIS = ["🌊", "🌸", "⚡", "🔮", "🎯", "🧭", "🦅", "🌿", "🔥", "⭐", "🌙", "☀️", "🎨", "🧠", "💎", "🚀", "🦊", "🐉", "🌀", "🏔️"];
+
+const INDUSTRIES = [
+  { value: "real_estate", label: "Real Estate" },
+  { value: "home_services", label: "Home Services" },
+  { value: "construction", label: "Construction" },
+  { value: "consulting", label: "Consulting" },
+  { value: "pro_services", label: "Professional Services" },
+  { value: "legal", label: "Legal" },
+  { value: "healthcare", label: "Healthcare" },
+  { value: "finance", label: "Finance" },
+  { value: "saas", label: "SaaS / Tech" },
+  { value: "ecommerce", label: "E-commerce" },
+  { value: "retail", label: "Retail" },
+  { value: "hospitality", label: "Hospitality" },
+  { value: "education", label: "Education" },
+  { value: "creative", label: "Creative / Agency" },
+  { value: "marketing", label: "Marketing / Ad" },
+  { value: "manufacturing", label: "Manufacturing" },
+  { value: "nonprofit", label: "Nonprofit" },
+];
+
+const NEVER_DO_OPTIONS = [
+  "Never use emojis",
+  "Never use jargon",
+  "Never be sarcastic",
+  "Never assume context",
+  "Never give medical or legal advice",
+  "Never share political opinions",
+  "Never use filler phrases",
+  "Never start with 'I'",
+  "Never use em dashes in writing",
+];
+
+const WRITING_SAMPLES = [
+  {
+    id: "sample_1",
+    label: "Direct & operational",
+    text: "Your Q3 numbers are in. Revenue up 18% YoY, churn down 2 points. The story worth telling: retention in the mid-market segment. That's where we doubled down on support and it shows. Deck attached for Monday. Slide 4 is the one you'll want to walk through first.",
+  },
+  {
+    id: "sample_2",
+    label: "Warm & conversational",
+    text: "Hey, quick note on the Q3 numbers. Revenue is up 18% year over year, which is great, but the part I'm most excited about is mid-market retention. Churn dropped 2 points and I really think it's because of the support team's work this quarter. I put together a deck for Monday. Let me know if you want to chat through it before the meeting.",
+  },
+  {
+    id: "sample_3",
+    label: "Thorough & analytical",
+    text: "Q3 performance summary: revenue increased 18% year-over-year, driven primarily by mid-market segment growth. Churn decreased by 2 percentage points, with the strongest improvement in accounts that engaged with our new support program. I've prepared a detailed deck covering the segment analysis, the retention driver breakdown, and three recommended actions for Q4. Slide 4 contains the summary if you want to start there.",
+  },
+];
+
+const DOMAINS = [
+  { id: "email", label: "Email drafting", icon: "✉", requires: ["gmail"] },
+  { id: "calendar", label: "Calendar & scheduling", icon: "◷", requires: ["gcal"] },
+  { id: "client_followup", label: "Client follow-ups", icon: "↻", requires: ["gmail"] },
+  { id: "lead_qual", label: "Lead qualification & triage", icon: "⌖", requires: [] },
+  { id: "crm", label: "CRM & sales ops", icon: "⎔", requires: ["ghl"] },
+  { id: "customer_support", label: "Customer support", icon: "☎", requires: [] },
+  { id: "meeting_prep", label: "Meeting prep & notes", icon: "◰", requires: ["gcal"] },
+  { id: "project_mgmt", label: "Project management", icon: "◫", requires: ["notion"] },
+  { id: "doc_drafting", label: "Document drafting", icon: "✎", requires: [] },
+  { id: "content", label: "Content creation", icon: "✦", requires: [] },
+  { id: "research", label: "Research & analysis", icon: "⌕", requires: [] },
+  { id: "reporting", label: "Reporting & dashboards", icon: "▦", requires: [] },
+  { id: "social", label: "Social media management", icon: "✶", requires: [] },
+  { id: "knowledge", label: "Knowledge base / FAQ", icon: "❀", requires: [] },
+  { id: "recruiting", label: "Recruiting & outreach", icon: "⌥", requires: [] },
+];
+
+const INTEGRATIONS = [
+  // Communication
+  { id: "gmail", label: "Gmail", category: "comm" },
+  { id: "outlook", label: "Outlook", category: "comm" },
+  { id: "gcal", label: "Google Calendar", category: "comm" },
+  { id: "slack", label: "Slack", category: "comm" },
+  { id: "teams", label: "Microsoft Teams", category: "comm" },
+  { id: "telegram", label: "Telegram", category: "comm" },
+  { id: "discord", label: "Discord", category: "comm" },
+  { id: "twilio", label: "Twilio (SMS)", category: "comm" },
+  // CRM
+  { id: "hubspot", label: "HubSpot", category: "crm" },
+  { id: "salesforce", label: "Salesforce", category: "crm" },
+  { id: "pipedrive", label: "Pipedrive", category: "crm" },
+  { id: "ghl", label: "GoHighLevel", category: "crm" },
+  { id: "followupboss", label: "Follow Up Boss", category: "crm" },
+  // Project / Knowledge
+  { id: "notion", label: "Notion", category: "ops" },
+  { id: "airtable", label: "Airtable", category: "ops" },
+  { id: "asana", label: "Asana", category: "ops" },
+  { id: "clickup", label: "ClickUp", category: "ops" },
+  { id: "monday", label: "Monday.com", category: "ops" },
+  { id: "linear", label: "Linear", category: "ops" },
+  // Sales / Marketing
+  { id: "calendly", label: "Calendly", category: "sales" },
+  { id: "apollo", label: "Apollo", category: "sales" },
+  { id: "mailchimp", label: "Mailchimp", category: "sales" },
+  // Finance / Automation
+  { id: "stripe", label: "Stripe", category: "finance" },
+  { id: "quickbooks", label: "QuickBooks", category: "finance" },
+  { id: "zapier", label: "Zapier", category: "automation" },
+];
+
+// ============================================================================
+// INITIAL STATE
+// ============================================================================
+
+const BUILD_STAGES = [
+  { emoji: "🏢", title: "Setting up your workspace", sub: "Provisioning Railway instance" },
+  { emoji: "🏪", title: (d) => `Loading ${d.businessName}'s profile`, sub: "Importing business context" },
+  { emoji: "🎭", title: (d) => `Writing ${d.agentName}'s personality`, sub: "Generating SOUL.md" },
+  { emoji: "🎙️", title: "Teaching them your voice", sub: "Compiling style directives" },
+  { emoji: "🗺️", title: "Assigning work domains", sub: "Mapping responsibilities" },
+  { emoji: "🔌", title: "Connecting their tools", sub: "Wiring encrypted credentials" },
+  { emoji: "✨", title: "Bringing them online", sub: "First health check" },
+];
+
+const initialData = {
+  email: "",
+  name: "",
+  businessName: "",
+  businessWebsite: "",
+  businessDescription: "",
+  targetAudience: "",
+  industries: [],
+  industryOther: "",
+  scrapedInsights: null,
+  agentName: "",
+  agentEmoji: "🌊",
+  agentChoosesEmoji: false,
+  agentDescription: "",
+  formal: 50,
+  concise: 70,
+  warm: 60,
+  communicationStyle: "conversational",
+  styleAnchor: "",  // auto-derived from sliders at submit
+  neverDo: [],
+  neverDoCustom: "",
+  _returnToReview: false,
+  workDomains: [],
+  workDomainsOther: "",
+  priorityDomains: [],
+  integrations: {},
+  priorityIntegrations: [],
+  integrationsOther: "",
+  reviewConfirmed: false,
+  pricingTier: null,
+  moveForward: false,
+};
+
+// ============================================================================
+// ROOT COMPONENT
+// ============================================================================
+
+function App() {
+  const [step, setStep] = useState(1);
+  const [data, setData] = useState(initialData);
+  const [transition, setTransition] = useState(null);
+
+  const update = (patch) => setData(d => ({ ...d, ...patch }));
+
+  const triggerTransition = (label, onComplete, duration = 1200) => {
+    setTransition(label);
+    setTimeout(() => {
+      onComplete();
+      setTimeout(() => setTransition(null), 50);
+    }, duration);
+  };
+
+  const hostnameOf = (url) => {
+    try {
+      const u = url.match(/^https?:\/\//) ? url : `https://${url}`;
+      return new URL(u).hostname.replace(/^www\./, "");
+    } catch {
+      return url.replace(/^https?:\/\//, "").replace(/^www\./, "").split("/")[0] || "your site";
+    }
+  };
+
+  const mockScrape = (website, businessName, industry) => {
+    const host = (() => {
+      try {
+        const u = website.match(/^https?:\/\//) ? website : `https://${website}`;
+        return new URL(u).hostname.replace(/^www\./, "");
+      } catch { return website; }
+    })();
+    return {
+      host,
+      headline: industry === "real_estate" ? `${businessName} — real estate team` : industry === "saas" ? `${businessName} — SaaS product` : `${businessName} — ${INDUSTRIES.find(i => i.value === industry)?.label || "business"}`,
+      findings: [
+        "Extracted homepage copy and hero message",
+        "Pulled service/product list from primary nav",
+        "Detected tone: professional, confident",
+        "Indexed team page and leadership bios",
+        "Captured contact details and social links",
+      ],
+      toneNotes: "Short sentences. Active verbs. Avoids jargon. Customer-centric framing.",
+    };
+  };
+
+  const next = () => {
+    if (transition) return;
+
+    // Return-to-review: jump back to Step 6 (the review/build/pricing combined step)
+    if (data._returnToReview && step < 6) {
+      triggerTransition({ title: "Saved.", emoji: "✓", tone: "quick" }, () => {
+        setData(d => ({ ...d, _returnToReview: false }));
+        setStep(6);
+      });
+      return;
+    }
+
+    // Step 6 (Review) and Step 7 (Pricing) are fully internal — own buttons, no footer next
+    // They each call setStep directly via their own onSubmit prop
+
+    const transitions = {
+      1: { emoji: "🏢", title: "Creating your workspace", sub: "Provisioning session" },
+      2: { emoji: "🔍", title: `Scanning ${hostnameOf(data.businessWebsite)}`, sub: `Learning about ${data.businessName}`, extended: true },
+      3: { emoji: "🎭", title: `Shaping ${data.agentName}`, sub: "Building personality model" },
+      4: { emoji: "🗺️", title: "Assigning work domains", sub: "Mapping responsibilities" },
+      5: { emoji: "🔌", title: "Noting your tools", sub: "Recording integrations to set up" },
+    };
+
+    const label = transitions[step];
+
+    // Step 2 is extended — mock-scrape the website and stash insights
+    if (step === 2 && !data.scrapedInsights) {
+      const insights = mockScrape(data.businessWebsite, data.businessName, data.industries?.[0]);
+      triggerTransition(label, () => {
+        setData(d => ({ ...d, scrapedInsights: insights }));
+        setStep(3);
+      }, 2200);
+      return;
+    }
+
+    triggerTransition(label, () => {
+      setStep(s => Math.min(8, s + 1));
+    });
+  };
+
+  const back = () => setStep(s => Math.max(1, s - 1));
+  const goTo = (n) => setStep(n);
+  const editFromReview = (n) => {
+    setData(d => ({ ...d, _returnToReview: true }));
+    setStep(n);
+  };
+
+  const canContinue = useMemo(() => validateStep(step, data), [step, data]) && !transition;
+
+  return (
+    <div className="min-h-screen flex flex-col">
+      <Header currentStep={step} goTo={goTo} />
+      <main className="flex-1 flex flex-col items-center justify-center py-12 px-6">
+        <div key={step} className={`w-full fade-in ${step >= 6 ? "max-w-5xl" : "max-w-2xl"}`}>
+          {step === 1 && <Step1 data={data} update={update} />}
+          {step === 2 && <Step2 data={data} update={update} />}
+          {step === 3 && <Step3 data={data} update={update} />}
+          {step === 4 && <Step4Domains data={data} update={update} />}
+          {step === 5 && <Step5Tools data={data} update={update} />}
+          {step === 6 && <Step6Review data={data} editFromReview={editFromReview} onSubmit={() => setStep(7)} onBack={() => setStep(5)} />}
+          {step === 7 && <Step7Pricing data={data} update={update} onSubmit={() => setStep(8)} onBack={() => setStep(6)} />}
+          {step === 8 && <Step8Process data={data} />}
+        </div>
+      </main>
+      {step < 6 && <Footer step={step} canContinue={canContinue} next={next} back={back} returnToReview={data._returnToReview} />}
+      {transition && <Transition label={transition} />}
+    </div>
+  );
+}
+
+function Transition({ label }) {
+  const isQuick = label.tone === "quick";
+  const isExtended = label.extended;
+  const findings = [
+    "Reading homepage copy",
+    "Indexing services",
+    "Extracting tone of voice",
+    "Pulling team info",
+  ];
+  const [revealedCount, setRevealedCount] = useState(0);
+  useEffect(() => {
+    if (!isExtended) return;
+    const timers = findings.map((_, i) =>
+      setTimeout(() => setRevealedCount(c => c + 1), 350 + i * 350)
+    );
+    return () => timers.forEach(clearTimeout);
+  }, [isExtended]);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center overlay-in" style={{ background: "rgba(247, 243, 234, 0.96)", backdropFilter: "blur(6px)" }}>
+      <div className="text-center px-6 max-w-md">
+        <div className="relative w-24 h-24 mx-auto mb-6">
+          {!isQuick && <div className="absolute inset-0 border-4 border-accent pulse-ring"></div>}
+          <div className={`absolute inset-0 flex items-center justify-center text-4xl ${isQuick ? "scale-in" : ""}`}>
+            {isQuick ? (
+              <div className="w-16 h-16 bg-ink border-2 border-ink shadow-brut flex items-center justify-center">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#3EB8C8" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline className="check-draw" points="5 12 10 17 19 8" />
+                </svg>
+              </div>
+            ) : (
+              label.emoji
+            )}
+          </div>
+        </div>
+        <div className="label-slide">
+          {label.sub && (
+            <div className="mono text-xs text-ink/60 uppercase tracking-widest font-semibold mb-2">{label.sub}</div>
+          )}
+          <div className="display font-black text-xl uppercase text-ink flex items-center justify-center gap-1">
+            {label.title}
+            {!isQuick && (
+              <span className="inline-flex items-center ml-1">
+                <span className="w-1.5 h-1.5 bg-ink dot-bounce mx-0.5" style={{ animationDelay: "0s" }}></span>
+                <span className="w-1.5 h-1.5 bg-ink dot-bounce mx-0.5" style={{ animationDelay: "0.2s" }}></span>
+                <span className="w-1.5 h-1.5 bg-ink dot-bounce mx-0.5" style={{ animationDelay: "0.4s" }}></span>
+              </span>
+            )}
+          </div>
+          {isExtended && (
+            <div className="mt-6 text-left space-y-1.5 min-h-[120px]">
+              {findings.slice(0, revealedCount).map((f, i) => (
+                <div key={i} className="flex items-center gap-2 text-sm text-ink/80 fade-in">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3EB8C8" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="5 12 10 17 19 8" />
+                  </svg>
+                  <span>{f}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// VALIDATION
+// ============================================================================
+
+function validateStep(step, d) {
+  switch (step) {
+    case 1: return d.email.includes("@") && d.name.length >= 2;
+    case 2: return d.businessName.length >= 2 && d.businessWebsite.length >= 4 && d.businessDescription.length >= 20;
+    case 3: return d.agentName.length >= 2 && (d.agentEmoji || d.agentChoosesEmoji) && d.agentDescription.length >= 5 && d.communicationStyle;
+    case 4: return d.workDomains.length >= 1 && d.priorityDomains.length === Math.min(3, d.workDomains.length);
+    case 5: {
+      const picked = Object.keys(d.integrations).length;
+      if (picked < 1) return false;
+      const requiredPriority = Math.min(3, picked);
+      return d.priorityIntegrations.length === requiredPriority;
+    }
+    // Step 6 is the Review/Confirm page (internal own-button, no footer)
+    case 7: return d.pricingTier && d.moveForward;  // pricing gate: tier + commitment
+    default: return true;
+  }
+}
+
+// ============================================================================
+// HEADER & FOOTER
+// ============================================================================
+
+function Header({ currentStep, goTo }) {
+  return (
+    <header className="border-b-2 border-ink bg-paper">
+      <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between gap-4">
+        <div className="flex items-center gap-3 min-w-0">
+          {/* Strategy Ninjas full logo lockup — transparent PNG, teal-on-cream */}
+          <img src="sn-logo.png" alt="Strategy Ninjas" className="h-9 w-auto block flex-shrink-0" />
+          <div className="min-w-0 hidden sm:block">
+            <div className="mono text-[10px] text-ink/60 uppercase tracking-widest font-semibold">Agent Discovery</div>
+          </div>
+        </div>
+        <div className="hidden md:flex items-center gap-1.5">
+          {STEPS.map(s => (
+            <button
+              key={s.n}
+              onClick={() => s.n < currentStep && goTo(s.n)}
+              disabled={s.n >= currentStep}
+              className={`h-2 transition-all ${
+                s.n === currentStep ? "bg-accent w-8 border border-ink" :
+                s.n < currentStep ? "bg-ink w-2 hover:w-5 cursor-pointer" :
+                "bg-ink/15 w-2"
+              }`}
+              aria-label={`Step ${s.n}: ${s.label}`}
+            />
+          ))}
+        </div>
+        <div className="mono text-xs text-ink/70 uppercase tracking-widest whitespace-nowrap flex-shrink-0 font-semibold">
+          Step {currentStep} / {STEPS.length}
+        </div>
+      </div>
+    </header>
+  );
+}
+
+function Footer({ step, canContinue, next, back, returnToReview }) {
+  const label =
+    returnToReview ? "Save & return to review →" :
+    step === 5 ? "Review & build →" :
+    "Continue →";
+
+  return (
+    <footer className="border-t-2 border-ink bg-paper">
+      <div className={`max-w-2xl mx-auto px-6 py-6 flex items-center gap-4 ${step === 1 ? "justify-end" : "justify-between"}`}>
+        {step > 1 && (
+          <button
+            onClick={back}
+            className="mono text-xs uppercase tracking-widest font-semibold text-ink/70 hover:text-ink transition-colors"
+          >
+            ← Back
+          </button>
+        )}
+        <button
+          onClick={next}
+          disabled={!canContinue}
+          className="display font-black text-xs uppercase tracking-widest bg-accent text-ink border-2 border-ink px-6 py-3 shadow-brut hover:shadow-brut-hover hover:-translate-x-0.5 hover:-translate-y-0.5 active:translate-x-0 active:translate-y-0 active:shadow-brut-sm disabled:bg-ink/10 disabled:text-ink/30 disabled:shadow-none disabled:cursor-not-allowed disabled:hover:translate-x-0 disabled:hover:translate-y-0 transition-all"
+        >
+          {label}
+        </button>
+      </div>
+    </footer>
+  );
+}
+
+// ============================================================================
+// STEP SHELL
+// ============================================================================
+
+function StepShell({ eyebrow, title, subtitle, children }) {
+  return (
+    <div>
+      <div className="mono text-xs text-ink/60 uppercase tracking-widest font-semibold mb-3 flex items-center gap-2">
+        <span className="inline-block w-6 h-px bg-accent"></span>
+        {eyebrow}
+      </div>
+      <h1 className="display font-black text-3xl md:text-5xl mb-4 text-ink">{title}</h1>
+      {subtitle && <p className="text-ink/75 text-base md:text-lg mb-8 leading-relaxed max-w-2xl">{subtitle}</p>}
+      <div className="space-y-5">{children}</div>
+    </div>
+  );
+}
+
+function Field({ label, hint, children, required }) {
+  return (
+    <div>
+      <label className="block mono text-xs font-semibold uppercase tracking-widest text-ink/80 mb-2">
+        {label} {required && <span className="text-accent">*</span>}
+      </label>
+      {children}
+      {hint && <p className="text-xs text-ink/60 mt-1.5">{hint}</p>}
+    </div>
+  );
+}
+
+const inputClass = "w-full px-4 py-3 text-sm bg-card border-2 border-ink/20 focus:border-accent focus:outline-none focus:bg-card transition-colors placeholder:text-ink/30";
+
+// ============================================================================
+// STEP 1 — ACCOUNT
+// ============================================================================
+
+function Step1({ data, update }) {
+  return (
+    <StepShell
+      eyebrow="Welcome"
+      title="Welcome to your agent discovery."
+      subtitle="Over the next 30 minutes we'll capture everything we need to design and build your AI Chief of Staff. By the end, you'll see exactly what we're building and what it costs."
+    >
+      <Field label="Your name" required>
+        <input
+          type="text"
+          value={data.name}
+          onChange={e => update({ name: e.target.value })}
+          placeholder="Jane Smith"
+          className={inputClass}
+        />
+      </Field>
+      <Field label="Email" hint="We'll send your build summary and next steps here." required>
+        <input
+          type="email"
+          value={data.email}
+          onChange={e => update({ email: e.target.value })}
+          placeholder="jane@acme.com"
+          className={inputClass}
+        />
+      </Field>
+    </StepShell>
+  );
+}
+
+// ============================================================================
+// STEP 2 — BUSINESS
+// ============================================================================
+
+function Step2({ data, update }) {
+  return (
+    <StepShell
+      eyebrow="About your business"
+      title="Tell us who you serve."
+      subtitle="Your agent will use this to speak your language. The more specific, the better it'll be."
+    >
+      <Field label="Business name" required>
+        <input
+          type="text"
+          value={data.businessName}
+          onChange={e => update({ businessName: e.target.value })}
+          placeholder="Acme Consulting"
+          className={inputClass}
+        />
+      </Field>
+      <Field label="Website" hint="We'll scan this to learn your tone, services, and team. (No login-only content.)" required>
+        <div className="relative">
+          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-ink/40 mono text-sm">🔍</span>
+          <input
+            type="text"
+            value={data.businessWebsite}
+            onChange={e => update({ businessWebsite: e.target.value, scrapedInsights: null })}
+            placeholder="acme.com"
+            className={inputClass + " pl-11"}
+          />
+        </div>
+      </Field>
+      <Field label="What does your business do?" hint={`${data.businessDescription.length}/20 characters minimum`} required>
+        <textarea
+          value={data.businessDescription}
+          onChange={e => update({ businessDescription: e.target.value })}
+          placeholder="We help mid-market B2B companies modernize their operations with AI-assisted workflows..."
+          rows={3}
+          className={inputClass + " resize-none"}
+        />
+      </Field>
+      <Field label="Who do you serve?">
+        <input
+          type="text"
+          value={data.targetAudience}
+          onChange={e => update({ targetAudience: e.target.value })}
+          placeholder="VP of Ops at 50-500 person companies"
+          className={inputClass}
+        />
+      </Field>
+      <Field label="Industries" hint="Optional. Pick any that apply.">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+          {INDUSTRIES.map(i => {
+            const on = data.industries.includes(i.value);
+            return (
+              <button
+                key={i.value}
+                onClick={() => {
+                  const next = on
+                    ? data.industries.filter(x => x !== i.value)
+                    : [...data.industries, i.value];
+                  update({ industries: next });
+                }}
+                className={`chip text-sm px-3 py-2 rounded-md border transition-all ${
+                  on
+                    ? "bg-ink text-paper border-2 border-ink"
+                    : "bg-card border-2 border-ink/25 hover:border-ink hover:bg-accentSoft"
+                }`}
+              >
+                {on && <span className="mr-1">✓</span>}{i.label}
+              </button>
+            );
+          })}
+        </div>
+      </Field>
+      <Field label="Other (anything not listed)">
+        <input
+          type="text"
+          value={data.industryOther}
+          onChange={e => update({ industryOther: e.target.value })}
+          placeholder="e.g. logistics, biotech, defense..."
+          className={inputClass}
+        />
+      </Field>
+    </StepShell>
+  );
+}
+
+// ============================================================================
+// STEP 3 — IDENTITY
+// ============================================================================
+
+function Step3({ data, update }) {
+  const preview = getPersonalityPreview(data.formal, data.concise, data.warm);
+
+  return (
+    <StepShell
+      eyebrow="Agent identity"
+      title="Who is your agent?"
+      subtitle="Give them a name, a face, and a personality. You can change all of this later."
+    >
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <div className="md:col-span-2">
+          <Field label="Agent name" hint="2-30 characters. Letters, numbers, spaces." required>
+            <input
+              type="text"
+              value={data.agentName}
+              onChange={e => update({ agentName: e.target.value })}
+              placeholder="Atlas"
+              maxLength={30}
+              className={inputClass}
+            />
+          </Field>
+        </div>
+        <div>
+          <Field label="Emoji" required>
+            <div className="flex items-center gap-3">
+              <div className={`w-12 h-12 rounded-md flex items-center justify-center text-2xl flex-shrink-0 ${
+                data.agentChoosesEmoji ? "bg-ink/5 text-ink/40" : "bg-accentSoft"
+              }`}>
+                {data.agentChoosesEmoji ? "✨" : (data.agentEmoji || "?")}
+              </div>
+              <div className="flex-1 text-xs text-ink/60">
+                {data.agentChoosesEmoji
+                  ? `${data.agentName || "Your agent"} will pick on launch.`
+                  : "Tap to choose, type your own, or let your agent choose."}
+              </div>
+            </div>
+          </Field>
+        </div>
+      </div>
+      <Field
+        label="Describe your agent in one sentence"
+        hint={`Goes into their system prompt. ${data.agentDescription.length}/5 minimum.`}
+        required
+      >
+        <input
+          type="text"
+          value={data.agentDescription}
+          onChange={e => update({ agentDescription: e.target.value })}
+          placeholder="A sharp, warm operations partner who keeps nothing falling through the cracks."
+          className={inputClass}
+        />
+      </Field>
+      <div className="pt-4 border-t border-ink/15">
+        <div className="mono text-xs text-ink/60 uppercase tracking-widest mb-3">Emoji</div>
+        <div className="flex flex-wrap gap-1.5 mb-3">
+          {EMOJIS.map(e => (
+            <button
+              key={e}
+              onClick={() => update({ agentEmoji: e, agentChoosesEmoji: false })}
+              className={`w-10 h-10 rounded-md text-xl transition-all ${
+                data.agentEmoji === e && !data.agentChoosesEmoji
+                  ? "bg-accentSoft ring-2 ring-accent"
+                  : "bg-card border border-ink/15 hover:border-ink"
+              }`}
+            >
+              {e}
+            </button>
+          ))}
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div>
+            <label className="block text-xs text-ink/60 mb-1.5">Or type your own</label>
+            <input
+              type="text"
+              value={data.agentChoosesEmoji ? "" : (EMOJIS.includes(data.agentEmoji) ? "" : data.agentEmoji)}
+              onChange={e => {
+                const v = [...e.target.value].slice(0, 2).join("");
+                update({ agentEmoji: v, agentChoosesEmoji: false });
+              }}
+              placeholder="🎯  (paste any emoji)"
+              className={inputClass}
+              maxLength={4}
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-ink/60 mb-1.5">Or let them choose</label>
+            <button
+              onClick={() => update({ agentChoosesEmoji: !data.agentChoosesEmoji })}
+              className={`w-full text-sm px-4 py-2.5 rounded-md border transition-all ${
+                data.agentChoosesEmoji
+                  ? "bg-ink text-paper border-2 border-ink"
+                  : "bg-card border-2 border-ink/25 hover:border-ink hover:bg-accentSoft"
+              }`}
+            >
+              {data.agentChoosesEmoji ? "✓ Agent picks on launch" : "✨ Let my agent choose"}
+            </button>
+          </div>
+        </div>
+      </div>
+      <div className="pt-4 border-t border-ink/15">
+        <div className="mono text-xs text-ink/60 uppercase tracking-widest mb-4">Personality</div>
+        <Slider label="Formal" rightLabel="Casual" value={data.formal} onChange={v => update({ formal: v })} />
+        <Slider label="Concise" rightLabel="Thorough" value={data.concise} onChange={v => update({ concise: v })} />
+        <Slider label="Reserved" rightLabel="Warm" value={data.warm} onChange={v => update({ warm: v })} />
+        <div className="mt-6 bg-card border-l-4 border-accent border-2 border-l-accent p-5 shadow-brut-sm">
+          <div className="mono text-xs text-ink/70 uppercase tracking-widest font-semibold mb-2 flex items-center gap-2">
+            <span className="inline-block w-2 h-2 bg-accent"></span>
+            Sample response
+          </div>
+          <p className="serif text-base text-ink leading-relaxed italic">"{preview}"</p>
+        </div>
+      </div>
+
+      <div className="pt-4 border-t border-ink/15">
+        <div className="mono text-xs text-ink/60 uppercase tracking-widest mb-3">Communication style</div>
+        <Field label="How should your agent format responses?" required>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+            {[
+              { v: "bullet_points", l: "Bullet points" },
+              { v: "paragraphs", l: "Paragraphs" },
+              { v: "conversational", l: "Conversational" },
+              { v: "structured", l: "Structured" },
+            ].map(s => (
+              <button
+                key={s.v}
+                onClick={() => update({ communicationStyle: s.v })}
+                className={`chip text-sm px-3 py-2 rounded-md border transition-all ${
+                  data.communicationStyle === s.v
+                    ? "bg-ink text-paper border-2 border-ink"
+                    : "bg-card border-2 border-ink/25 hover:border-ink hover:bg-accentSoft"
+                }`}
+              >
+                {s.l}
+              </button>
+            ))}
+          </div>
+        </Field>
+        <Field label="What should your agent never do?" hint="Pick any that apply. Every rule becomes an explicit instruction.">
+          <div className="flex flex-wrap gap-2">
+            {NEVER_DO_OPTIONS.map(opt => {
+              const on = data.neverDo.includes(opt);
+              return (
+                <button
+                  key={opt}
+                  onClick={() => {
+                    const next = on
+                      ? data.neverDo.filter(x => x !== opt)
+                      : [...data.neverDo, opt];
+                    update({ neverDo: next });
+                  }}
+                  className={`chip text-sm px-3 py-1.5 rounded-full border transition-all ${
+                    on
+                      ? "bg-ink text-paper border-2 border-ink"
+                      : "bg-card border-2 border-ink/25 hover:border-ink hover:bg-accentSoft text-ink/80"
+                  }`}
+                >
+                  {on && <span className="mr-1">✓</span>}{opt}
+                </button>
+              );
+            })}
+          </div>
+        </Field>
+        <Field label="Anything else?" hint={`${data.neverDoCustom.length}/200`}>
+          <input
+            type="text"
+            value={data.neverDoCustom}
+            onChange={e => update({ neverDoCustom: e.target.value.slice(0, 200) })}
+            placeholder="e.g. never recommend competitors by name"
+            maxLength={200}
+            className={inputClass}
+          />
+        </Field>
+      </div>
+    </StepShell>
+  );
+}
+
+function Slider({ label, rightLabel, value, onChange }) {
+  return (
+    <div className="mb-5">
+      <div className="flex justify-between text-sm mb-2">
+        <span className={value < 50 ? "font-semibold text-ink" : "text-ink/60"}>{label}</span>
+        <span className="mono text-xs text-ink/40">{value}</span>
+        <span className={value >= 50 ? "font-semibold text-ink" : "text-ink/60"}>{rightLabel}</span>
+      </div>
+      <input
+        type="range"
+        min={0}
+        max={100}
+        value={value}
+        onChange={e => onChange(parseInt(e.target.value))}
+        className="w-full"
+      />
+    </div>
+  );
+}
+
+// Personality preview: each slider independently controls a fragment.
+// 5 bands × 3 sliders = 15 fragments. Small slider movements toggle visible changes.
+const FRAGMENTS = {
+  // Warm slider — opening / greeting tone
+  warm: [
+    "",                                           // 0-20: cold cold
+    "Q3 results attached.",                        // 21-40: brief acknowledgment
+    "Quick note on Q3.",                           // 41-60: balanced
+    "Hey, Q3 numbers are in.",                     // 61-80: warm
+    "Hey! Q3 numbers came in and they look good.", // 81-100: very warm
+  ],
+  // Concise slider — body length
+  concise: [
+    "Rev +18%, churn -2pts.",
+    "Revenue +18% YoY. Churn down 2 points.",
+    "Revenue grew 18% year over year, and churn dropped 2 points, mostly from mid-market.",
+    "Revenue grew 18% year over year, with mid-market driving most of it. Churn dropped 2 points across the same segment.",
+    "Revenue grew 18% year over year. The strongest growth came from mid-market accounts. Churn decreased 2 percentage points, with the biggest improvement among accounts that engaged with our new support program. Three drivers stood out: onboarding work, the renewals process, and feature adoption.",
+  ],
+  // Formal slider — sign-off tone (higher = more casual)
+  formal: [
+    "Full breakdown in the attached report.",
+    "Deck attached for Monday.",
+    "Deck attached for Monday's review.",
+    "Threw together a deck for Monday. Slide 4 has the punchline.",
+    "Quick deck attached, slide 4 has the punchline. 🎯",
+  ],
+};
+
+function band(value) {
+  if (value < 20) return 0;
+  if (value < 40) return 1;
+  if (value < 60) return 2;
+  if (value < 80) return 3;
+  return 4;
+}
+
+function getPersonalityPreview(formal, concise, warm) {
+  const greeting = FRAGMENTS.warm[band(warm)];
+  const body = FRAGMENTS.concise[band(concise)];
+  const closing = FRAGMENTS.formal[band(formal)];
+  return [greeting, body, closing].filter(Boolean).join(" ");
+}
+
+// ============================================================================
+// STEP 4 — DOMAINS
+// ============================================================================
+
+function Step4Domains({ data, update }) {
+  const toggle = (id) => {
+    const selected = data.workDomains.includes(id);
+    const nextDomains = selected
+      ? data.workDomains.filter(x => x !== id)
+      : [...data.workDomains, id];
+    const nextPriority = data.priorityDomains.filter(x => nextDomains.includes(x));
+    update({ workDomains: nextDomains, priorityDomains: nextPriority });
+  };
+
+  const togglePriority = (id) => {
+    if (!data.workDomains.includes(id)) return;
+    const inPriority = data.priorityDomains.includes(id);
+    if (inPriority) {
+      update({ priorityDomains: data.priorityDomains.filter(x => x !== id) });
+    } else {
+      if (data.priorityDomains.length >= 3) return;
+      update({ priorityDomains: [...data.priorityDomains, id] });
+    }
+  };
+
+  const maxPriority = Math.min(3, data.workDomains.length);
+
+  return (
+    <StepShell
+      eyebrow="Work domains"
+      title="What's your agent for?"
+      subtitle="Pick everything that applies. Then rank your top 3."
+    >
+      <div className="grid grid-cols-2 gap-2">
+        {DOMAINS.map(d => {
+          const on = data.workDomains.includes(d.id);
+          return (
+            <button
+              key={d.id}
+              onClick={() => toggle(d.id)}
+              className={`flex items-center gap-3 p-3 rounded-md border text-left transition-all ${
+                on ? "bg-accentSoft border-ink" : "bg-card border-2 border-ink/25 hover:border-ink hover:bg-accentSoft"
+              }`}
+            >
+              <div className={`w-8 h-8 rounded flex items-center justify-center mono text-sm ${
+                on ? "bg-ink text-paper" : "bg-ink/5"
+              }`}>
+                {d.icon}
+              </div>
+              <span className="text-sm font-medium">{d.label}</span>
+            </button>
+          );
+        })}
+      </div>
+      {data.workDomains.length > 0 && (
+        <div className="pt-6 border-t border-ink/15">
+          <div className="mono text-xs text-ink/60 uppercase tracking-widest mb-1">Priority ranking</div>
+          <p className="text-sm text-ink/70 mb-4">
+            {data.workDomains.length === 1 && "Your #1 priority."}
+            {data.workDomains.length === 2 && "Rank both in order — tap #1 first, then #2."}
+            {data.workDomains.length >= 3 && `Pick your top ${maxPriority} in order — tap #1 first. Tap again to remove.`}
+            {" "}
+            <span className="mono text-xs text-ink/40">
+              ({data.priorityDomains.length} of {maxPriority} selected)
+            </span>
+          </p>
+          <div className="space-y-2">
+            {data.workDomains.map(id => {
+              const domain = DOMAINS.find(d => d.id === id);
+              const rank = data.priorityDomains.indexOf(id);
+              return (
+                <button
+                  key={id}
+                  onClick={() => togglePriority(id)}
+                  className={`w-full flex items-center gap-3 p-3 rounded-md border text-left transition-all ${
+                    rank >= 0 ? "bg-card border-ink" : "bg-paper border-ink/15 hover:border-ink/40"
+                  }`}
+                >
+                  <div className={`w-8 h-8 rounded flex items-center justify-center mono text-sm font-semibold ${
+                    rank >= 0 ? "bg-ink text-paper" : "bg-card border border-ink/25 text-ink/40"
+                  }`}>
+                    {rank >= 0 ? rank + 1 : "—"}
+                  </div>
+                  <span className="text-sm">{domain.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+      <Field label="Anything else?" hint="Free-text. Capture domains we didn't list above.">
+        <input
+          type="text"
+          value={data.workDomainsOther}
+          onChange={e => update({ workDomainsOther: e.target.value })}
+          placeholder="e.g. inventory tracking, podcast prep, fundraising outreach..."
+          className={inputClass}
+        />
+      </Field>
+    </StepShell>
+  );
+}
+
+// ============================================================================
+// STEP 5 — TOOLS
+// ============================================================================
+
+function Step5Tools({ data, update }) {
+  const requiredIds = new Set(
+    data.workDomains.flatMap(id => DOMAINS.find(d => d.id === id)?.requires || [])
+  );
+
+  const toggle = (id) => {
+    const next = { ...data.integrations };
+    if (next[id]) {
+      delete next[id];
+    } else {
+      next[id] = { planned: true };
+    }
+    // Drop priority entries that are no longer selected
+    const nextPriority = data.priorityIntegrations.filter(x => next[x]);
+    update({ integrations: next, priorityIntegrations: nextPriority });
+  };
+
+  const togglePriority = (id) => {
+    if (!data.integrations[id]) return;
+    const inPriority = data.priorityIntegrations.includes(id);
+    if (inPriority) {
+      update({ priorityIntegrations: data.priorityIntegrations.filter(x => x !== id) });
+    } else {
+      if (data.priorityIntegrations.length >= 3) return;
+      update({ priorityIntegrations: [...data.priorityIntegrations, id] });
+    }
+  };
+
+  const planned = Object.keys(data.integrations).length;
+  const maxPriority = Math.min(3, planned);
+  const allLabel = (id) => INTEGRATIONS.find(i => i.id === id)?.label;
+
+  return (
+    <StepShell
+      eyebrow="Tools"
+      title="Which tools should your agent connect to?"
+      subtitle="Pick everything your team uses. Then rank your top 3 — those are the ones we'll wire up at launch. (Agent Build covers up to 3 integrations.)"
+    >
+      <div className="grid grid-cols-2 gap-2">
+        {INTEGRATIONS.map(i => {
+          const isPlanned = data.integrations[i.id]?.planned;
+          const required = requiredIds.has(i.id);
+          return (
+            <button
+              key={i.id}
+              onClick={() => toggle(i.id)}
+              className={`flex items-center gap-3 p-3 rounded-md border text-left transition-all ${
+                isPlanned ? "bg-accentSoft border-ink" : "bg-card border-2 border-ink/25 hover:border-ink hover:bg-accentSoft"
+              }`}
+            >
+              <div className={`w-5 h-5 rounded flex items-center justify-center flex-shrink-0 ${
+                isPlanned ? "bg-ink" : "border border-ink/25"
+              }`}>
+                {isPlanned && (
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fafaf9" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="5 12 10 17 19 8" />
+                  </svg>
+                )}
+              </div>
+              <span className="text-sm font-medium flex-1">{i.label}</span>
+              {required && (
+                <span className="mono text-[10px] text-accent">SUGGESTED</span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+      {planned > 0 && (
+        <div className="pt-6 border-t border-ink/15">
+          <div className="mono text-xs text-ink/60 uppercase tracking-widest mb-1">Priority ranking</div>
+          <p className="text-sm text-ink/70 mb-4">
+            {planned === 1 && "Your #1 integration."}
+            {planned === 2 && "Rank both in order — tap #1 first, then #2."}
+            {planned >= 3 && `Pick your top 3 in order — tap #1 first. Tap again to remove.`}
+            {" "}
+            <span className="mono text-xs text-ink/40">
+              ({data.priorityIntegrations.length} of {maxPriority} selected)
+            </span>
+          </p>
+          <div className="space-y-2">
+            {Object.keys(data.integrations).map(id => {
+              const rank = data.priorityIntegrations.indexOf(id);
+              return (
+                <button
+                  key={id}
+                  onClick={() => togglePriority(id)}
+                  className={`w-full flex items-center gap-3 p-3 rounded-md border text-left transition-all ${
+                    rank >= 0 ? "bg-card border-ink" : "bg-paper border-ink/15 hover:border-ink/40"
+                  }`}
+                >
+                  <div className={`w-8 h-8 rounded flex items-center justify-center mono text-sm font-semibold ${
+                    rank >= 0 ? "bg-ink text-paper" : "bg-card border border-ink/25 text-ink/40"
+                  }`}>
+                    {rank >= 0 ? rank + 1 : "—"}
+                  </div>
+                  <span className="text-sm">{allLabel(id)}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+      <Field label="Tools we didn't list" hint="Anything else they should connect to? Comma-separate.">
+        <input
+          type="text"
+          value={data.integrationsOther}
+          onChange={e => update({ integrationsOther: e.target.value })}
+          placeholder="e.g. BoomTown, LionDesk, custom CRM..."
+          className={inputClass}
+        />
+      </Field>
+      <div className="text-xs text-ink/60 pt-1">
+        🔒 No authentication required here. Once you're onboarded, we'll handle the setup securely on your behalf.
+      </div>
+    </StepShell>
+  );
+}
+
+// ============================================================================
+// STEP 6 — REVIEW + BUILD + PRICING (multi-phase)
+// STEP 7 — OUR PROCESS (final page)
+// Supporting: SummaryCard, PersonalityStat, buildIntakeJSON
+// ============================================================================
+
+function SummaryCard({ title, onEdit, children }) {
+  return (
+    <div className="border-2 border-ink p-5 bg-card">
+      <div className="flex items-center justify-between mb-3 pb-3 border-b border-ink/15">
+        <div className="display font-black text-sm uppercase tracking-tight text-ink flex items-center gap-2">
+          <span className="inline-block w-2 h-2 bg-accent"></span>
+          {title}
+        </div>
+        {onEdit && (
+          <button onClick={onEdit} className="mono text-[10px] uppercase tracking-widest font-semibold text-ink/60 hover:text-accent transition-colors">
+            Edit
+          </button>
+        )}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function PersonalityStat({ label, inverse, value }) {
+  const leaning = value < 40 ? label : value > 60 ? inverse : "Balanced";
+  return (
+    <div className="min-w-0">
+      <div className="text-ink/40 uppercase tracking-widest text-[10px] truncate">{label} / {inverse}</div>
+      <div className="font-semibold text-ink mt-0.5 text-sm">{leaning}</div>
+    </div>
+  );
+}
+
+function bandLabel(value, low, mid, high) {
+  if (value < 33) return low;
+  if (value > 66) return high;
+  return mid;
+}
+
+function buildIntakeText(data) {
+  // Plain text — designed to read naturally in an email attachment, terminal, or text editor.
+  // No markdown markup. Uses ASCII separators and indentation for visual structure.
+
+  const tier = TIERS.find(t => t.id === data.pricingTier);
+  const industries = data.industries
+    .map(v => INDUSTRIES.find(i => i.value === v)?.label)
+    .filter(Boolean);
+  if (data.industryOther) industries.push(data.industryOther);
+
+  const priorityDomainLabels = data.priorityDomains
+    .map(id => DOMAINS.find(d => d.id === id)?.label)
+    .filter(Boolean);
+  const nonPriorityDomains = data.workDomains
+    .filter(id => !data.priorityDomains.includes(id))
+    .map(id => DOMAINS.find(d => d.id === id)?.label)
+    .filter(Boolean);
+
+  const now = new Date();
+  const dateStr = now.toLocaleString("en-US", { dateStyle: "long", timeStyle: "short" });
+
+  const HEAVY = "=".repeat(72);
+  const LIGHT = "-".repeat(72);
+  const center = (txt, w = 72) => {
+    const pad = Math.max(0, Math.floor((w - txt.length) / 2));
+    return " ".repeat(pad) + txt;
+  };
+  const section = (title) => [LIGHT, "  " + title.toUpperCase(), LIGHT];
+  const kv = (key, val, width = 14) => `  ${(key + ":").padEnd(width)} ${val ?? ""}`;
+  const bullet = (txt) => `  • ${txt}`;
+
+  const lines = [];
+
+  // Header
+  lines.push(HEAVY);
+  lines.push(center("CLIENT AGENT INTAKE"));
+  lines.push(HEAVY);
+  lines.push("");
+  lines.push(kv("Captured", dateStr));
+  lines.push(kv("Source", "Discovery call"));
+  lines.push(kv("Engagement", tier ? `${tier.name}  ·  $${tier.price.toLocaleString()}  ·  ${tier.deliveryDays} days` : "Not selected"));
+  lines.push("");
+
+  // Client
+  lines.push(...section("Client"));
+  lines.push("");
+  lines.push(kv("Name", data.name));
+  lines.push(kv("Email", data.email));
+  lines.push("");
+
+  // Business
+  lines.push(...section("Business"));
+  lines.push("");
+  lines.push(`  ${data.businessName}` + (data.businessWebsite ? `   (${data.businessWebsite})` : ""));
+  if (industries.length > 0) {
+    lines.push(kv("Industries", industries.join(", ")));
+  }
+  lines.push("");
+  // Wrap description to ~66 cols, indented 2 spaces
+  const wrapped = wrapText(data.businessDescription, 66).map(l => "  " + l);
+  lines.push(...wrapped);
+  lines.push("");
+  if (data.targetAudience) {
+    lines.push(kv("Serves", data.targetAudience));
+    lines.push("");
+  }
+  if (data.scrapedInsights) {
+    lines.push(`  --- Scraped from ${data.scrapedInsights.host} ---`);
+    lines.push("");
+    data.scrapedInsights.findings.forEach(f => lines.push(`    • ${f}`));
+    lines.push("");
+    lines.push(kv("Tone", data.scrapedInsights.toneNotes));
+    lines.push("");
+  }
+
+  // Agent
+  lines.push(...section("Agent"));
+  lines.push("");
+  lines.push(kv("Name", data.agentName));
+  lines.push(kv("Emoji", data.agentChoosesEmoji ? "(agent chooses on launch)" : data.agentEmoji));
+  lines.push(kv("One-liner", `"${data.agentDescription}"`));
+  lines.push("");
+  lines.push(`  --- Personality ---`);
+  lines.push("");
+  lines.push(`    Formal  <-->  Casual       ${String(data.formal).padStart(3)}    (${bandLabel(data.formal, "Formal", "Balanced", "Casual")})`);
+  lines.push(`    Concise <-->  Thorough     ${String(data.concise).padStart(3)}    (${bandLabel(data.concise, "Concise", "Balanced", "Thorough")})`);
+  lines.push(`    Reserved <-->  Warm        ${String(data.warm).padStart(3)}    (${bandLabel(data.warm, "Reserved", "Balanced", "Warm")})`);
+  lines.push("");
+  lines.push(kv("Style", (data.communicationStyle || "").replace("_", " ")));
+  lines.push("");
+  if (data.neverDo.length > 0 || data.neverDoCustom) {
+    lines.push(`  Never do:`);
+    data.neverDo.forEach(rule => lines.push(`    • ${rule}`));
+    if (data.neverDoCustom) {
+      lines.push(`    • (Custom) ${data.neverDoCustom}`);
+    }
+    lines.push("");
+  }
+
+  // Work domains
+  lines.push(...section("Work domains"));
+  lines.push("");
+  if (priorityDomainLabels.length > 0) {
+    lines.push(`  Priority (top ${priorityDomainLabels.length}):`);
+    priorityDomainLabels.forEach((label, i) => lines.push(`    ${i + 1}.  ${label}`));
+    lines.push("");
+  }
+  if (nonPriorityDomains.length > 0) {
+    lines.push(`  Also:  ${nonPriorityDomains.join(", ")}`);
+    lines.push("");
+  }
+  if (data.workDomainsOther) {
+    lines.push(kv("Other", data.workDomainsOther));
+    lines.push("");
+  }
+
+  // Tools
+  lines.push(...section("Tools to connect at launch"));
+  lines.push("");
+  const priorityIntegrationLabels = data.priorityIntegrations
+    .map(id => INTEGRATIONS.find(i => i.id === id)?.label)
+    .filter(Boolean);
+  const secondaryIntegrationLabels = Object.keys(data.integrations)
+    .filter(id => !data.priorityIntegrations.includes(id))
+    .map(id => INTEGRATIONS.find(i => i.id === id)?.label)
+    .filter(Boolean);
+
+  if (priorityIntegrationLabels.length > 0) {
+    lines.push(`  Priority (top ${priorityIntegrationLabels.length}):`);
+    priorityIntegrationLabels.forEach((label, i) => lines.push(`    ${i + 1}.  ${label}`));
+    lines.push("");
+  }
+  if (secondaryIntegrationLabels.length > 0) {
+    lines.push(`  Also discussed: ${secondaryIntegrationLabels.join(", ")}`);
+    lines.push("");
+  }
+  if (priorityIntegrationLabels.length === 0 && secondaryIntegrationLabels.length === 0) {
+    lines.push(`  (none selected)`);
+  }
+  if (data.integrationsOther) {
+    lines.push(kv("Other", data.integrationsOther));
+  }
+  lines.push("");
+
+  // Engagement details
+  if (tier) {
+    lines.push(...section("Engagement details"));
+    lines.push("");
+    lines.push(`  ${tier.name}`);
+    lines.push(`  $${tier.price.toLocaleString()}  ·  ${tier.deliveryDays}-day delivery`);
+    lines.push("");
+    lines.push(`  "${tier.tagline}"`);
+    lines.push("");
+    lines.push(`  Includes:`);
+    tier.includes.forEach(item => lines.push(`    • ${item}`));
+    lines.push("");
+  }
+
+  // Footer
+  lines.push(HEAVY);
+  lines.push("  Generated by SN Discovery v2.1");
+  lines.push("  Companion JSON file delivered for Lexi ingestion.");
+  lines.push(HEAVY);
+
+  return lines.join("\n");
+}
+
+function wrapText(text, width) {
+  if (!text) return [""];
+  const words = text.split(/\s+/);
+  const out = [];
+  let line = "";
+  for (const w of words) {
+    if ((line + " " + w).trim().length > width) {
+      if (line) out.push(line);
+      line = w;
+    } else {
+      line = (line + " " + w).trim();
+    }
+  }
+  if (line) out.push(line);
+  return out;
+}
+
+function buildIntakeJSON(data) {
+  const tier = TIERS.find(t => t.id === data.pricingTier);
+  return {
+    intake_version: "2.1",
+    captured_at: new Date().toISOString(),
+    captured_by: "discovery_call",
+    client: {
+      name: data.name,
+      email: data.email,
+    },
+    business: {
+      name: data.businessName,
+      website: data.businessWebsite,
+      description: data.businessDescription,
+      target_audience: data.targetAudience,
+      industries: data.industries,
+      industry_other: data.industryOther,
+      scraped_insights: data.scrapedInsights,
+    },
+    agent: {
+      name: data.agentName,
+      emoji: data.agentChoosesEmoji ? null : data.agentEmoji,
+      agent_chooses_emoji: data.agentChoosesEmoji,
+      description: data.agentDescription,
+      personality: {
+        formal: data.formal,
+        concise: data.concise,
+        warm: data.warm,
+      },
+      communication_style: data.communicationStyle,
+      never_do: data.neverDo,
+      never_do_custom: data.neverDoCustom,
+      work_domains: data.workDomains,
+      work_domains_other: data.workDomainsOther,
+      priority_domains: data.priorityDomains,
+    },
+    integrations_planned: Object.keys(data.integrations),
+    priority_integrations: data.priorityIntegrations,
+    integrations_other: data.integrationsOther,
+    pricing_tier: data.pricingTier,
+    tier_details: tier ? {
+      name: tier.name,
+      price: tier.price,
+      delivery_days: tier.deliveryDays,
+      includes: tier.includes,
+    } : null,
+    delivery: {
+      notion_posted: false,  // Interim: manual handling. Toggle to true once Notion wiring lands.
+      emails_sent: [],       // Interim: manual handling. Populate once email service wiring lands.
+    },
+  };
+}
+
+// Filename: SNForge-{business-slug}_{agent-slug}_intake_{YYYYMMDD}.{ext}
+// Example:  SNForge-acme-realty_sage_intake_20260512.txt
+// The "SNForge-" prefix groups all Strategy Ninjas Agent Forge intakes together when
+// sorted in any folder view. Underscores between segments + dashes inside slugs so the
+// filename stays scannable when business or agent name has spaces.
+const FILENAME_PREFIX = "SNForge-";
+
+function slugify(s) {
+  return (s || "").toString().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+}
+
+function getIntakeFilename(data, ext) {
+  const businessSlug = slugify(data.businessName) || "client";
+  const agentSlug = slugify(data.agentName);
+  const today = new Date().toISOString().slice(0, 10).replace(/-/g, "");
+  const parts = [businessSlug];
+  if (agentSlug) parts.push(agentSlug);
+  parts.push("intake", today);
+  return FILENAME_PREFIX + parts.join("_") + "." + ext;
+}
+
+// Downloads both the .txt and .json intake files. Called from Step 6 "Confirm details" handler.
+// In production this will be replaced by a fetch() to a serverless endpoint that emails + posts to Notion.
+function downloadIntakeFiles(data) {
+  const trigger = (content, ext, mime) => {
+    const blob = new Blob([content], { type: mime });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = getIntakeFilename(data, ext);
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 500);
+  };
+
+  // Stagger by 200ms so browsers reliably trigger both
+  trigger(buildIntakeText(data), "txt", "text/plain");
+  setTimeout(() => {
+    trigger(JSON.stringify(buildIntakeJSON(data), null, 2), "json", "application/json");
+  }, 200);
+}
+
+function AgentSpecCards({ data, editFromReview }) {
+  const connectedIntegrations = Object.keys(data.integrations);
+  const industryLabels = data.industries
+    .map(v => INDUSTRIES.find(i => i.value === v)?.label)
+    .filter(Boolean);
+  const displayEmoji = data.agentChoosesEmoji ? "✨" : data.agentEmoji;
+
+  return (
+    <div className="space-y-4">
+      <SummaryCard title="Agent" onEdit={editFromReview ? () => editFromReview(3) : null}>
+        <div className="flex items-start gap-4">
+          <div className={`w-14 h-14 rounded-lg flex items-center justify-center text-3xl flex-shrink-0 ${
+            data.agentChoosesEmoji ? "bg-ink/5" : "bg-accentSoft"
+          }`}>
+            {displayEmoji}
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="font-semibold">{data.agentName}</div>
+            {data.agentChoosesEmoji && (
+              <div className="mono text-xs text-ink/60 mt-0.5">Emoji: agent picks on launch</div>
+            )}
+            <p className="text-sm text-ink/70 mt-0.5 italic">"{data.agentDescription}"</p>
+            <div className="mt-3 grid grid-cols-3 gap-3 mono text-xs">
+              <PersonalityStat label="Formal" inverse="Casual" value={data.formal} />
+              <PersonalityStat label="Concise" inverse="Thorough" value={data.concise} />
+              <PersonalityStat label="Reserved" inverse="Warm" value={data.warm} />
+            </div>
+          </div>
+        </div>
+      </SummaryCard>
+      <SummaryCard title="Business" onEdit={editFromReview ? () => editFromReview(2) : null}>
+        <div className="text-sm">
+          <div className="font-medium">
+            {data.businessName}
+            {data.businessWebsite && (
+              <span className="text-ink/40 font-normal mono text-xs ml-2">{data.businessWebsite}</span>
+            )}
+          </div>
+          {industryLabels.length > 0 && (
+            <div className="flex flex-wrap gap-1 mt-1">
+              {industryLabels.map(l => (
+                <span key={l} className="mono text-xs bg-ink/5 text-ink/70 px-1.5 py-0.5 rounded">{l}</span>
+              ))}
+              {data.industryOther && (
+                <span className="mono text-xs bg-ink/5 text-ink/70 px-1.5 py-0.5 rounded">{data.industryOther}</span>
+              )}
+            </div>
+          )}
+          <p className="text-ink/70 mt-2">{data.businessDescription}</p>
+          {data.targetAudience && <p className="text-ink/60 text-xs mt-1">Serves: {data.targetAudience}</p>}
+          {data.scrapedInsights && (
+            <div className="mt-3 pt-3 border-t border-ink/10">
+              <div className="mono text-xs text-accent uppercase tracking-widest mb-2">
+                🔍 From {data.scrapedInsights.host}
+              </div>
+              <ul className="space-y-1">
+                {data.scrapedInsights.findings.map((f, i) => (
+                  <li key={i} className="text-xs text-ink/70 flex items-start gap-1.5">
+                    <span className="text-accent mt-0.5">✓</span><span>{f}</span>
+                  </li>
+                ))}
+              </ul>
+              <p className="mono text-xs text-ink/60 mt-2">Tone: {data.scrapedInsights.toneNotes}</p>
+            </div>
+          )}
+        </div>
+      </SummaryCard>
+      <SummaryCard title="Work domains" onEdit={editFromReview ? () => editFromReview(4) : null}>
+        <div className="flex flex-wrap gap-1.5">
+          {data.workDomains.map(id => {
+            const domain = DOMAINS.find(d => d.id === id);
+            const priority = data.priorityDomains.indexOf(id);
+            return (
+              <span
+                key={id}
+                className={`text-xs px-2 py-1 rounded-full ${
+                  priority >= 0 ? "bg-ink text-paper" : "bg-ink/5 text-ink/80"
+                }`}
+              >
+                {priority >= 0 ? `${priority + 1}. ` : ""}{domain?.label}
+              </span>
+            );
+          })}
+          {data.workDomainsOther && (
+            <span className="text-xs px-2 py-1 rounded-full bg-ink/5 text-ink/80 italic">+ {data.workDomainsOther}</span>
+          )}
+        </div>
+      </SummaryCard>
+      <SummaryCard title="Launch integrations" onEdit={editFromReview ? () => editFromReview(5) : null}>
+        {connectedIntegrations.length === 0 ? (
+          <div className="text-sm text-amber-700 bg-amber-50 rounded p-3 -m-1">
+            ⚠ No integrations on the launch list yet.
+          </div>
+        ) : (
+          <div className="space-y-2">
+            <div className="flex flex-wrap gap-1.5">
+              {connectedIntegrations.map(id => {
+                const priority = data.priorityIntegrations.indexOf(id);
+                return (
+                  <span
+                    key={id}
+                    className={`text-xs px-2 py-1 rounded-full ${
+                      priority >= 0 ? "bg-ink text-paper font-medium" : "bg-ink/5 text-ink/80"
+                    }`}
+                  >
+                    {priority >= 0 ? `${priority + 1}. ` : ""}{INTEGRATIONS.find(i => i.id === id)?.label}
+                  </span>
+                );
+              })}
+              {data.integrationsOther && (
+                <span className="text-xs bg-ink/5 text-ink/80 px-2 py-1 rounded-full italic">+ {data.integrationsOther}</span>
+              )}
+            </div>
+            <p className="mono text-xs text-ink/60">
+              Numbered ones launch with the build. Others stay in the queue for later.
+            </p>
+          </div>
+        )}
+      </SummaryCard>
+    </div>
+  );
+}
+
+function fireConfetti() {
+  if (typeof confetti !== "function") return;
+  const burst = (opts) => confetti({
+    particleCount: 60,
+    spread: 70,
+    startVelocity: 45,
+    gravity: 0.9,
+    ticks: 200,
+    colors: ["#0a0a0a", "#4338ca", "#eef2ff", "#f59e0b", "#fafaf9"],
+    ...opts,
+  });
+  burst({ origin: { x: 0.5, y: 0.55 } });
+  setTimeout(() => burst({ particleCount: 40, angle: 60, spread: 55, origin: { x: 0, y: 0.7 } }), 180);
+  setTimeout(() => burst({ particleCount: 40, angle: 120, spread: 55, origin: { x: 1, y: 0.7 } }), 320);
+}
+
+function Step6Review({ data, editFromReview, onSubmit, onBack }) {
+  // Phases: 'review' → 'sending' (build animation + silent backend) → onSubmit() advances to Step 7 (Pricing)
+  const [phase, setPhase] = useState("review");
+  const [stageIdx, setStageIdx] = useState(0);
+  const [completedStages, setCompletedStages] = useState([]);
+  const stages = BUILD_STAGES;
+  const stageDuration = 500;
+
+  // Drive build animation + silent send during 'sending' phase
+  useEffect(() => {
+    if (phase !== "sending") return;
+
+    // === DELIVERY (interim: client-side download) ===
+    // Both files (.txt and .json) drop into the user's Downloads folder immediately.
+    // John handles delivery manually: forward email to Alex, drop JSON into Lexi, etc.
+    //
+    // PRODUCTION wiring (later): replace this with a fetch() POST to a Cloudflare Worker
+    // (or similar) that emails both files to john@/alex@ + posts to Notion DB.
+    downloadIntakeFiles(data);
+
+    const timers = stages.map((_, i) =>
+      setTimeout(() => {
+        setStageIdx(i);
+        setCompletedStages(c => i > 0 ? [...c, i - 1] : c);
+      }, i * stageDuration)
+    );
+    const done = setTimeout(() => {
+      setCompletedStages(stages.map((_, i) => i));
+      fireConfetti();
+      // Brief beat after the recap finishes before advancing
+      setTimeout(() => onSubmit(), 1100);
+    }, stages.length * stageDuration + 300);
+    return () => { timers.forEach(clearTimeout); clearTimeout(done); };
+  }, [phase]);
+
+  // ---------- review ----------
+  if (phase === "review") {
+    return (
+      <StepShell
+        eyebrow="Review"
+        title={`Meet ${data.agentName} ${data.agentChoosesEmoji ? "✨" : data.agentEmoji}`}
+        subtitle="Take one last look together. Click Edit on any card to tweak something. When it's right, confirm — your intake files will download to my machine and we'll move on to pricing."
+      >
+        <AgentSpecCards data={data} editFromReview={editFromReview} />
+        <div className="pt-6 border-t-2 border-ink/15 flex items-center justify-between flex-wrap gap-3">
+          <button
+            onClick={onBack}
+            className="mono text-xs uppercase tracking-widest font-semibold text-ink/70 hover:text-ink transition-colors"
+          >
+            ← Back to tools
+          </button>
+          <button
+            onClick={() => setPhase("sending")}
+            className="display font-black text-xs uppercase tracking-widest bg-accent text-ink border-2 border-ink px-6 py-3 shadow-brut hover:shadow-brut-hover hover:-translate-x-0.5 hover:-translate-y-0.5 active:translate-x-0 active:translate-y-0 active:shadow-brut-sm transition-all"
+          >
+            Confirm details →
+          </button>
+        </div>
+        <p className="text-xs text-ink/60 text-center pt-2">
+          Confirming downloads the intake to my machine. Next we'll review pricing together.
+        </p>
+      </StepShell>
+    );
+  }
+
+  // ---------- sending (journey-recap animation + silent backend fire) ----------
+  const stage = stages[stageIdx];
+  const title = typeof stage.title === "function" ? stage.title(data) : stage.title;
+  return (
+    <div className="text-center py-8">
+      <div className="relative w-32 h-32 mx-auto mb-8">
+        <div className="absolute inset-0 border-4 border-accent pulse-ring"></div>
+        <div key={stageIdx} className="absolute inset-0 flex items-center justify-center text-5xl scale-in">
+          {stage.emoji}
+        </div>
+      </div>
+      <div className="mono text-xs text-ink/60 uppercase tracking-widest font-semibold mb-2">Saving your spec</div>
+      <h1 className="display font-black text-2xl md:text-3xl uppercase mb-2">{title}</h1>
+      <p className="text-ink/70 text-sm mb-8">{stage.sub}</p>
+      <div className="flex items-center justify-center gap-2 flex-wrap max-w-md mx-auto">
+        {stages.map((s, i) => {
+          const done = completedStages.includes(i);
+          const active = i === stageIdx;
+          return (
+            <div
+              key={i}
+              className={`w-10 h-10 flex items-center justify-center text-lg transition-all border-2 ${
+                active ? "bg-accent border-ink scale-110 shadow-brut-sm" :
+                done ? "bg-ink border-ink text-accent" :
+                "bg-card border-ink/20 opacity-50"
+              }`}
+            >
+              {done && !active ? (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3EB8C8" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="5 12 10 17 19 8" />
+                </svg>
+              ) : s.emoji}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// STEP 7 — PRICING
+// ============================================================================
+
+function Step7Pricing({ data, update, onSubmit, onBack }) {
+  const isComplex = data.workDomains.length >= 4 ||
+    data.workDomains.some(d => ["content", "research", "crm", "social", "recruiting"].includes(d));
+  const recommendedTier = isComplex ? "tier_2" : null;
+  const canSubmit = data.pricingTier && data.moveForward;
+
+  return (
+    <StepShell
+      eyebrow="Pricing"
+      title="Choose your engagement."
+      subtitle="Two ways to start. Both deliver a working agent — Phase 1 Full adds the strategy work behind it."
+    >
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        {TIERS.map(tier => {
+          const selected = data.pricingTier === tier.id;
+          const recommended = recommendedTier === tier.id;
+          return (
+            <button
+              key={tier.id}
+              onClick={() => update({ pricingTier: tier.id })}
+              className={`w-full text-left p-6 border-2 border-ink transition-all relative ${
+                selected
+                  ? "bg-accent shadow-brut-lg -translate-x-1 -translate-y-1"
+                  : "bg-card shadow-brut hover:shadow-brut-hover hover:-translate-x-0.5 hover:-translate-y-0.5"
+              }`}
+            >
+              {recommended && (
+                <div className="absolute -top-3 left-4 bg-ink text-accent display font-black text-[10px] px-2 py-1 uppercase tracking-widest border-2 border-ink">
+                  Recommended
+                </div>
+              )}
+              <div className="flex items-baseline justify-between mb-2">
+                <div className="display font-black text-xl uppercase tracking-tight">{tier.name}</div>
+                {selected && (
+                  <div className="w-7 h-7 bg-ink text-accent flex items-center justify-center font-black">✓</div>
+                )}
+              </div>
+              <div className="display font-black text-4xl tracking-tight mb-1 text-ink">
+                ${tier.price.toLocaleString()}
+                <span className="text-sm text-ink/70 font-normal ml-2 mono uppercase tracking-widest">· {tier.deliveryDays} days</span>
+              </div>
+              <p className="serif italic text-sm text-ink/80 mb-4">{tier.tagline}</p>
+              <ul className="space-y-1.5 text-sm">
+                {tier.includes.map((item, i) => (
+                  <li key={i} className="flex items-start gap-2">
+                    <span className={`mt-0.5 font-black ${selected ? "text-ink" : "text-accent"}`}>✓</span>
+                    <span className={item.endsWith(":") ? "font-semibold" : ""}>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </button>
+          );
+        })}
+      </div>
+      <div className="pt-5 border-t border-ink/15 mt-2">
+        <label className="flex items-start gap-3 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={data.moveForward}
+            onChange={e => update({ moveForward: e.target.checked })}
+            className="mt-0.5 w-4 h-4 accent-ink"
+          />
+          <span className="text-sm text-ink/80">
+            I'd like to move forward and start the build.
+          </span>
+        </label>
+      </div>
+      <div className="flex items-center justify-between flex-wrap gap-3 pt-2">
+        <button
+          onClick={onBack}
+          className="mono text-xs uppercase tracking-widest font-semibold text-ink/70 hover:text-ink transition-colors"
+        >
+          ← Back to review
+        </button>
+        <button
+          onClick={onSubmit}
+          disabled={!canSubmit}
+          className="display font-black text-xs uppercase tracking-widest bg-accent text-ink border-2 border-ink px-6 py-3 shadow-brut hover:shadow-brut-hover hover:-translate-x-0.5 hover:-translate-y-0.5 active:translate-x-0 active:translate-y-0 active:shadow-brut-sm disabled:bg-ink/10 disabled:text-ink/30 disabled:shadow-none disabled:cursor-not-allowed disabled:hover:translate-x-0 disabled:hover:translate-y-0 transition-all"
+        >
+          Let's do it →
+        </button>
+      </div>
+      <p className="text-xs text-ink/60 text-center pt-1">
+        Final tier details and contract sent within one business day. No payment captured here.
+      </p>
+    </StepShell>
+  );
+}
+
+// ============================================================================
+// STEP 8 — OUR PROCESS (final page)
+// ============================================================================
+
+function Step8Process({ data }) {
+  const tier = TIERS.find(t => t.id === data.pricingTier);
+  const days = tier?.deliveryDays || 30;
+  const isFullPhase = data.pricingTier === "tier_2";
+
+  // Build process timeline based on tier
+  const timeline = isFullPhase ? [
+    { week: "Week 1", title: "Discovery deep-dive", body: "We map your workflows, audit your systems, and confirm the agent spec we built together today." },
+    { week: "Week 2", title: "Agent build + strategy work begins", body: `${data.agentName || "Your agent"} gets configured and deployed. We start work on your AI Strategy Report and Org Chart.` },
+    { week: "Week 3", title: "Review + iteration", body: "You test the agent in real work. We refine based on feedback. Strategy deliverables drafted." },
+    { week: "Week 4", title: "Final handoff", body: "Polished agent live in your account. Strategy Report, Org Chart, Employee Strategy, and Phase 2 Roadmap delivered." },
+  ] : [
+    { week: "Days 1-3", title: "Discovery confirmation", body: "We map your workflows in detail. Confirm the agent spec we built together today." },
+    { week: "Days 4-9", title: "Agent build", body: `${data.agentName || "Your agent"} gets configured: personality wired, voice tuned, work domains mapped.` },
+    { week: "Days 10-12", title: "Tool integration", body: "Your selected tools get connected. We test every flow end-to-end." },
+    { week: "Days 13-14", title: "Handoff + training", body: "Final deployment to your account. Live training call. You walk away with a working agent." },
+  ];
+
+  return (
+    <div className="py-4 fade-in">
+      <div className="text-center mb-10">
+        <div className="w-20 h-20 bg-ink text-accent border-2 border-ink shadow-brut mx-auto mb-6 flex items-center justify-center display font-black text-4xl">
+          ✓
+        </div>
+        <div className="mono text-xs text-ink/60 uppercase tracking-widest mb-2">Intake received</div>
+        <h1 className="text-3xl md:text-4xl font-bold mb-3">
+          Here's what happens next.
+        </h1>
+        <p className="text-ink/70 text-base max-w-md mx-auto">
+          You've chosen <span className="font-semibold">{tier?.name || "an engagement"}</span>. Over the next {days} days, here's our process.
+        </p>
+      </div>
+
+      <div className="max-w-2xl mx-auto">
+        {timeline.map((stage, i) => (
+          <div key={i} className={`flex gap-4 items-start p-5 bg-card border-2 border-ink ${i > 0 ? "border-t-0" : ""}`}>
+            <div className="w-10 h-10 bg-ink text-accent display font-black flex items-center justify-center flex-shrink-0 text-lg">
+              {i + 1}
+            </div>
+            <div className="flex-1">
+              <div className="mono text-xs text-ink/60 uppercase tracking-widest font-semibold mb-1">{stage.week}</div>
+              <div className="display font-black uppercase text-base text-ink mb-1">{stage.title}</div>
+              <p className="text-sm text-ink/70 leading-relaxed">{stage.body}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="max-w-2xl mx-auto mt-8 bg-card border-2 border-ink shadow-brut p-6">
+        <div className="display font-black text-sm uppercase tracking-tight text-ink mb-3 flex items-center gap-2">
+          <span className="inline-block w-2 h-2 bg-accent"></span>
+          What you can expect this week
+        </div>
+        <ol className="text-sm text-ink/80 space-y-2 list-decimal list-inside">
+          <li>A contract from john@thestrategyninjas.com within one business day.</li>
+          <li>An invoice for {tier ? `$${tier.price.toLocaleString()}` : "your engagement"} alongside the contract.</li>
+          <li>A kickoff call scheduled the day the contract is signed.</li>
+        </ol>
+      </div>
+
+      <p className="text-xs text-ink/60 text-center mt-8 max-w-md mx-auto">
+        Questions before then? Reach out anytime at john@thestrategyninjas.com. We're glad to have you, {data.name?.split(" ")[0] || "there"}.
+      </p>
+
+      <IntakePreview data={data} />
+    </div>
+  );
+}
+
+function IntakePreview({ data }) {
+  const [open, setOpen] = useState(false);
+  const [view, setView] = useState("text"); // text | json
+  const txt = useMemo(() => buildIntakeText(data), [data]);
+  const json = useMemo(() => JSON.stringify(buildIntakeJSON(data), null, 2), [data]);
+
+  if (!open) {
+    return (
+      <div className="text-center mt-12 pt-6 border-t border-ink/10">
+        <button
+          onClick={() => setOpen(true)}
+          className="mono text-xs text-ink/40 hover:text-ink transition-colors"
+        >
+          ◧ Preview intake (internal use)
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center px-4 py-6 overlay-in" style={{ background: "rgba(24, 24, 24, 0.5)" }}>
+      <div className="bg-card border-2 border-ink shadow-brut-lg max-w-3xl w-full max-h-full flex flex-col">
+        <div className="flex items-center justify-between p-5 border-b-2 border-ink">
+          <div>
+            <div className="mono text-xs text-ink/60 uppercase tracking-widest font-semibold">Intake preview</div>
+            <div className="display font-black text-sm uppercase tracking-tight">Internal use — shows what gets emailed + posted to Notion</div>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="flex border-2 border-ink overflow-hidden text-xs">
+              <button
+                onClick={() => setView("text")}
+                className={`mono px-3 py-1.5 uppercase tracking-widest font-semibold ${view === "text" ? "bg-ink text-accent" : "bg-card text-ink/70 hover:bg-paper"}`}
+              >
+                Human (.txt)
+              </button>
+              <button
+                onClick={() => setView("json")}
+                className={`mono px-3 py-1.5 uppercase tracking-widest font-semibold border-l-2 border-ink ${view === "json" ? "bg-ink text-accent" : "bg-card text-ink/70 hover:bg-paper"}`}
+              >
+                Lexi (.json)
+              </button>
+            </div>
+            <button
+              onClick={() => setOpen(false)}
+              className="w-8 h-8 hover:bg-ink/5 flex items-center justify-center text-ink/60 font-black"
+              aria-label="Close"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+        <div className="overflow-y-auto p-6 flex-1 bg-paper">
+          <pre className="mono text-xs text-ink/90 whitespace-pre leading-relaxed">{view === "text" ? txt : json}</pre>
+        </div>
+        <div className="border-t-2 border-ink p-4 flex items-center justify-between gap-3 flex-wrap bg-card">
+          <div className="text-xs text-ink/60">
+            In production both files attach to the email + Notion post.
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={() => {
+                navigator.clipboard?.writeText(view === "text" ? txt : json);
+              }}
+              className="mono text-xs uppercase tracking-widest font-semibold px-3 py-1.5 border-2 border-ink hover:bg-paper"
+            >
+              Copy
+            </button>
+            <button
+              onClick={() => {
+                const ext = view === "text" ? "txt" : "json";
+                const mime = view === "text" ? "text/plain" : "application/json";
+                const content = view === "text" ? txt : json;
+                const blob = new Blob([content], { type: mime });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = getIntakeFilename(data, ext);
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                setTimeout(() => URL.revokeObjectURL(url), 100);
+              }}
+              className="mono text-xs uppercase tracking-widest font-semibold px-3 py-1.5 bg-ink text-accent border-2 border-ink hover:bg-ink/90"
+            >
+              Download
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+// ============================================================================
+// MOUNT
+// ============================================================================
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>
