@@ -6,7 +6,7 @@
 <title>Strategy Ninjas — Agent Discovery</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700;900&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Source+Serif+4:ital,wght@0,400;1,400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700;900&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Source+Serif+4:ital,wght@0,400;0,600;0,700;0,900;1,400&display=swap" rel="stylesheet">
 <script src="https://cdn.tailwindcss.com"></script>
 <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -62,9 +62,11 @@
   .mono { font-family: 'JetBrains Mono', monospace; }
   .serif { font-family: 'Source Serif 4', Georgia, serif; }
 
-  /* Brand-styled headings — UPPERCASE Space Grotesk Black per brand guide */
-  h1, h2, h3 { font-family: 'Space Grotesk', system-ui, sans-serif; font-weight: 900; text-transform: uppercase; letter-spacing: -0.01em; line-height: 0.95; }
-  h1 { letter-spacing: -0.025em; line-height: 0.92; }
+  /* Brand-styled headings — Source Serif 4 (Pro), heavy weight, UPPERCASE for that
+     editorial-brutalist masthead feel. Headlines stay sharp and bold but with serifs;
+     buttons + section labels stay in Space Grotesk (via .display) for contrast. */
+  h1, h2, h3 { font-family: 'Source Serif 4', 'Source Serif Pro', Georgia, serif; font-weight: 900; text-transform: uppercase; letter-spacing: -0.01em; line-height: 0.95; }
+  h1 { letter-spacing: -0.02em; line-height: 0.94; }
 
   /* Zero border-radius enforcement (over and above Tailwind config) */
   button, input, textarea, select, .card, [class*="rounded"] { border-radius: 0 !important; }
@@ -552,7 +554,7 @@ function StepShell({ eyebrow, title, subtitle, children }) {
         <span className="inline-block w-6 h-px bg-accent"></span>
         {eyebrow}
       </div>
-      <h1 className="display font-black text-3xl md:text-5xl mb-4 text-ink">{title}</h1>
+      <h1 className="font-black text-3xl md:text-5xl mb-4 text-ink">{title}</h1>
       {subtitle && <p className="text-ink/75 text-base md:text-lg mb-8 leading-relaxed max-w-2xl">{subtitle}</p>}
       <div className="space-y-5">{children}</div>
     </div>
@@ -1635,7 +1637,7 @@ function Step6Review({ data, editFromReview, onSubmit, onBack }) {
         </div>
       </div>
       <div className="mono text-xs text-ink/60 uppercase tracking-widest font-semibold mb-2">Saving your spec</div>
-      <h1 className="display font-black text-2xl md:text-3xl uppercase mb-2">{title}</h1>
+      <h1 className="font-black text-2xl md:text-3xl mb-2">{title}</h1>
       <p className="text-ink/70 text-sm mb-8">{stage.sub}</p>
       <div className="flex items-center justify-center gap-2 flex-wrap max-w-md mx-auto">
         {stages.map((s, i) => {
