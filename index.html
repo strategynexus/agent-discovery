@@ -109,6 +109,11 @@ const { useState, useEffect, useMemo } = React;
 // CONSTANTS
 // ============================================================================
 
+// Google Apps Script web-app URL that saves intake .txt files to the SN team Drive folder.
+// Empty string = Drive delivery disabled (only local download fires on Confirm).
+// To wire up: deploy the apps-script-backend.js companion file, paste the /exec URL here.
+const DRIVE_BACKEND_URL = "";
+
 const STEPS = [
   { n: 1, label: "Account" },
   { n: 2, label: "Business" },
@@ -278,7 +283,6 @@ const initialData = {
   targetAudience: "",
   industries: [],
   industryOther: "",
-  scrapedInsights: null,
   agentName: "",
   agentEmoji: "🌊",
   agentChoosesEmoji: false,
@@ -321,36 +325,6 @@ function App() {
     }, duration);
   };
 
-  const hostnameOf = (url) => {
-    try {
-      const u = url.match(/^https?:\/\//) ? url : `https://${url}`;
-      return new URL(u).hostname.replace(/^www\./, "");
-    } catch {
-      return url.replace(/^https?:\/\//, "").replace(/^www\./, "").split("/")[0] || "your site";
-    }
-  };
-
-  const mockScrape = (website, businessName, industry) => {
-    const host = (() => {
-      try {
-        const u = website.match(/^https?:\/\//) ? website : `https://${website}`;
-        return new URL(u).hostname.replace(/^www\./, "");
-      } catch { return website; }
-    })();
-    return {
-      host,
-      headline: industry === "real_estate" ? `${businessName} — real estate team` : industry === "saas" ? `${businessName} — SaaS product` : `${businessName} — ${INDUSTRIES.find(i => i.value === industry)?.label || "business"}`,
-      findings: [
-        "Extracted homepage copy and hero message",
-        "Pulled service/product list from primary nav",
-        "Detected tone: professional, confident",
-        "Indexed team page and leadership bios",
-        "Captured contact details and social links",
-      ],
-      toneNotes: "Short sentences. Active verbs. Avoids jargon. Customer-centric framing.",
-    };
-  };
-
   const next = () => {
     if (transition) return;
 
@@ -368,23 +342,13 @@ function App() {
 
     const transitions = {
       1: { emoji: "🏢", title: "Creating your workspace", sub: "Provisioning session" },
-      2: { emoji: "🔍", title: `Scanning ${hostnameOf(data.businessWebsite)}`, sub: `Learning about ${data.businessName}`, extended: true },
+      2: { emoji: "🏪", title: `Noted ${data.businessName}`, sub: "Saving business profile" },
       3: { emoji: "🎭", title: `Shaping ${data.agentName}`, sub: "Building personality model" },
       4: { emoji: "🗺️", title: "Assigning work domains", sub: "Mapping responsibilities" },
       5: { emoji: "🔌", title: "Noting your tools", sub: "Recording integrations to set up" },
     };
 
     const label = transitions[step];
-
-    // Step 2 is extended — mock-scrape the website and stash insights
-    if (step === 2 && !data.scrapedInsights) {
-      const insights = mockScrape(data.businessWebsite, data.businessName, data.industries?.[0]);
-      triggerTransition(label, () => {
-        setData(d => ({ ...d, scrapedInsights: insights }));
-        setStep(3);
-      }, 2200);
-      return;
-    }
 
     triggerTransition(label, () => {
       setStep(s => Math.min(8, s + 1));
@@ -662,13 +626,13 @@ function Step2({ data, update }) {
           className={inputClass}
         />
       </Field>
-      <Field label="Website" hint="We'll scan this to learn your tone, services, and team. (No login-only content.)" required>
+      <Field label="Website" hint="Our team uses this during the build to learn your tone, services, and team." required>
         <div className="relative">
           <span className="absolute left-4 top-1/2 -translate-y-1/2 text-ink/40 mono text-sm">🔍</span>
           <input
             type="text"
             value={data.businessWebsite}
-            onChange={e => update({ businessWebsite: e.target.value, scrapedInsights: null })}
+            onChange={e => update({ businessWebsite: e.target.value })}
             placeholder="acme.com"
             className={inputClass + " pl-11"}
           />
@@ -1307,14 +1271,6 @@ function buildIntakeText(data) {
     lines.push(kv("Serves", data.targetAudience));
     lines.push("");
   }
-  if (data.scrapedInsights) {
-    lines.push(`  --- Scraped from ${data.scrapedInsights.host} ---`);
-    lines.push("");
-    data.scrapedInsights.findings.forEach(f => lines.push(`    • ${f}`));
-    lines.push("");
-    lines.push(kv("Tone", data.scrapedInsights.toneNotes));
-    lines.push("");
-  }
 
   // Agent
   lines.push(...section("Agent"));
@@ -1425,60 +1381,7 @@ function wrapText(text, width) {
   return out;
 }
 
-function buildIntakeJSON(data) {
-  const tier = TIERS.find(t => t.id === data.pricingTier);
-  return {
-    intake_version: "2.1",
-    captured_at: new Date().toISOString(),
-    captured_by: "discovery_call",
-    client: {
-      name: data.name,
-      email: data.email,
-    },
-    business: {
-      name: data.businessName,
-      website: data.businessWebsite,
-      description: data.businessDescription,
-      target_audience: data.targetAudience,
-      industries: data.industries,
-      industry_other: data.industryOther,
-      scraped_insights: data.scrapedInsights,
-    },
-    agent: {
-      name: data.agentName,
-      emoji: data.agentChoosesEmoji ? null : data.agentEmoji,
-      agent_chooses_emoji: data.agentChoosesEmoji,
-      description: data.agentDescription,
-      personality: {
-        formal: data.formal,
-        concise: data.concise,
-        warm: data.warm,
-      },
-      communication_style: data.communicationStyle,
-      never_do: data.neverDo,
-      never_do_custom: data.neverDoCustom,
-      work_domains: data.workDomains,
-      work_domains_other: data.workDomainsOther,
-      priority_domains: data.priorityDomains,
-    },
-    integrations_planned: Object.keys(data.integrations),
-    priority_integrations: data.priorityIntegrations,
-    integrations_other: data.integrationsOther,
-    pricing_tier: data.pricingTier,
-    tier_details: tier ? {
-      name: tier.name,
-      price: tier.price,
-      delivery_days: tier.deliveryDays,
-      includes: tier.includes,
-    } : null,
-    delivery: {
-      notion_posted: false,  // Interim: manual handling. Toggle to true once Notion wiring lands.
-      emails_sent: [],       // Interim: manual handling. Populate once email service wiring lands.
-    },
-  };
-}
-
-// Filename: SNForge-{business-slug}_{agent-slug}_intake_{YYYYMMDD}.{ext}
+// Filename: SNForge-{business-slug}_{agent-slug}_intake_{YYYYMMDD}.txt
 // Example:  SNForge-acme-realty_sage_intake_20260512.txt
 // The "SNForge-" prefix groups all Strategy Ninjas Agent Forge intakes together when
 // sorted in any folder view. Underscores between segments + dashes inside slugs so the
@@ -1489,36 +1392,47 @@ function slugify(s) {
   return (s || "").toString().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
 }
 
-function getIntakeFilename(data, ext) {
+function getIntakeFilename(data) {
   const businessSlug = slugify(data.businessName) || "client";
   const agentSlug = slugify(data.agentName);
   const today = new Date().toISOString().slice(0, 10).replace(/-/g, "");
   const parts = [businessSlug];
   if (agentSlug) parts.push(agentSlug);
   parts.push("intake", today);
-  return FILENAME_PREFIX + parts.join("_") + "." + ext;
+  return FILENAME_PREFIX + parts.join("_") + ".txt";
 }
 
-// Downloads both the .txt and .json intake files. Called from Step 6 "Confirm details" handler.
-// In production this will be replaced by a fetch() to a serverless endpoint that emails + posts to Notion.
-function downloadIntakeFiles(data) {
-  const trigger = (content, ext, mime) => {
-    const blob = new Blob([content], { type: mime });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = getIntakeFilename(data, ext);
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    setTimeout(() => URL.revokeObjectURL(url), 500);
-  };
+// Downloads the .txt intake file locally. Called from Step 6 "Confirm details" handler.
+function downloadIntakeFile(data) {
+  const content = buildIntakeText(data);
+  const blob = new Blob([content], { type: "text/plain" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = getIntakeFilename(data);
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 500);
+}
 
-  // Stagger by 200ms so browsers reliably trigger both
-  trigger(buildIntakeText(data), "txt", "text/plain");
-  setTimeout(() => {
-    trigger(JSON.stringify(buildIntakeJSON(data), null, 2), "json", "application/json");
-  }, 200);
+// Posts the intake .txt to the team Drive folder via a Google Apps Script web app.
+// Fire-and-forget — wizard doesn't block on the response. If the backend URL isn't
+// configured (DRIVE_BACKEND_URL empty), this is a no-op. The local download still fires
+// either way, so the intake never gets lost.
+function postToDrive(data) {
+  if (!DRIVE_BACKEND_URL) return;
+  const payload = {
+    txtFilename: getIntakeFilename(data),
+    txtContent: buildIntakeText(data),
+  };
+  // text/plain content-type avoids a CORS preflight (Apps Script can't handle OPTIONS).
+  // The Apps Script parses the body as JSON server-side.
+  fetch(DRIVE_BACKEND_URL, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify(payload),
+  }).catch(err => console.warn("Drive backend POST failed (silent fallback):", err));
 }
 
 function AgentSpecCards({ data, editFromReview }) {
@@ -1571,21 +1485,6 @@ function AgentSpecCards({ data, editFromReview }) {
           )}
           <p className="text-ink/70 mt-2">{data.businessDescription}</p>
           {data.targetAudience && <p className="text-ink/60 text-xs mt-1">Serves: {data.targetAudience}</p>}
-          {data.scrapedInsights && (
-            <div className="mt-3 pt-3 border-t border-ink/10">
-              <div className="mono text-xs text-accent uppercase tracking-widest mb-2">
-                🔍 From {data.scrapedInsights.host}
-              </div>
-              <ul className="space-y-1">
-                {data.scrapedInsights.findings.map((f, i) => (
-                  <li key={i} className="text-xs text-ink/70 flex items-start gap-1.5">
-                    <span className="text-accent mt-0.5">✓</span><span>{f}</span>
-                  </li>
-                ))}
-              </ul>
-              <p className="mono text-xs text-ink/60 mt-2">Tone: {data.scrapedInsights.toneNotes}</p>
-            </div>
-          )}
         </div>
       </SummaryCard>
       <SummaryCard title="Work domains" onEdit={editFromReview ? () => editFromReview(4) : null}>
@@ -1672,13 +1571,12 @@ function Step6Review({ data, editFromReview, onSubmit, onBack }) {
   useEffect(() => {
     if (phase !== "sending") return;
 
-    // === DELIVERY (interim: client-side download) ===
-    // Both files (.txt and .json) drop into the user's Downloads folder immediately.
-    // John handles delivery manually: forward email to Alex, drop JSON into Lexi, etc.
-    //
-    // PRODUCTION wiring (later): replace this with a fetch() POST to a Cloudflare Worker
-    // (or similar) that emails both files to john@/alex@ + posts to Notion DB.
-    downloadIntakeFiles(data);
+    // === DELIVERY ===
+    // 1. Local download to consultant's Downloads folder (always)
+    // 2. POST to Google Apps Script → drops .txt into the team Drive folder
+    //    (only if DRIVE_BACKEND_URL is configured; otherwise silently no-ops)
+    downloadIntakeFile(data);
+    postToDrive(data);
 
     const timers = stages.map((_, i) =>
       setTimeout(() => {
@@ -1933,9 +1831,7 @@ function Step8Process({ data }) {
 
 function IntakePreview({ data }) {
   const [open, setOpen] = useState(false);
-  const [view, setView] = useState("text"); // text | json
   const txt = useMemo(() => buildIntakeText(data), [data]);
-  const json = useMemo(() => JSON.stringify(buildIntakeJSON(data), null, 2), [data]);
 
   if (!open) {
     return (
@@ -1956,43 +1852,27 @@ function IntakePreview({ data }) {
         <div className="flex items-center justify-between p-5 border-b-2 border-ink">
           <div>
             <div className="mono text-xs text-ink/60 uppercase tracking-widest font-semibold">Intake preview</div>
-            <div className="display font-black text-sm uppercase tracking-tight">Internal use — shows what gets emailed + posted to Notion</div>
+            <div className="display font-black text-sm uppercase tracking-tight">Internal use — shows what gets saved to Drive</div>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="flex border-2 border-ink overflow-hidden text-xs">
-              <button
-                onClick={() => setView("text")}
-                className={`mono px-3 py-1.5 uppercase tracking-widest font-semibold ${view === "text" ? "bg-ink text-accent" : "bg-card text-ink/70 hover:bg-paper"}`}
-              >
-                Human (.txt)
-              </button>
-              <button
-                onClick={() => setView("json")}
-                className={`mono px-3 py-1.5 uppercase tracking-widest font-semibold border-l-2 border-ink ${view === "json" ? "bg-ink text-accent" : "bg-card text-ink/70 hover:bg-paper"}`}
-              >
-                Lexi (.json)
-              </button>
-            </div>
-            <button
-              onClick={() => setOpen(false)}
-              className="w-8 h-8 hover:bg-ink/5 flex items-center justify-center text-ink/60 font-black"
-              aria-label="Close"
-            >
-              ✕
-            </button>
-          </div>
+          <button
+            onClick={() => setOpen(false)}
+            className="w-8 h-8 hover:bg-ink/5 flex items-center justify-center text-ink/60 font-black"
+            aria-label="Close"
+          >
+            ✕
+          </button>
         </div>
         <div className="overflow-y-auto p-6 flex-1 bg-paper">
-          <pre className="mono text-xs text-ink/90 whitespace-pre leading-relaxed">{view === "text" ? txt : json}</pre>
+          <pre className="mono text-xs text-ink/90 whitespace-pre leading-relaxed">{txt}</pre>
         </div>
         <div className="border-t-2 border-ink p-4 flex items-center justify-between gap-3 flex-wrap bg-card">
           <div className="text-xs text-ink/60">
-            In production both files attach to the email + Notion post.
+            On Confirm details, this file downloads locally and posts to the team Drive folder.
           </div>
           <div className="flex gap-2">
             <button
               onClick={() => {
-                navigator.clipboard?.writeText(view === "text" ? txt : json);
+                navigator.clipboard?.writeText(txt);
               }}
               className="mono text-xs uppercase tracking-widest font-semibold px-3 py-1.5 border-2 border-ink hover:bg-paper"
             >
@@ -2000,14 +1880,11 @@ function IntakePreview({ data }) {
             </button>
             <button
               onClick={() => {
-                const ext = view === "text" ? "txt" : "json";
-                const mime = view === "text" ? "text/plain" : "application/json";
-                const content = view === "text" ? txt : json;
-                const blob = new Blob([content], { type: mime });
+                const blob = new Blob([txt], { type: "text/plain" });
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement("a");
                 a.href = url;
-                a.download = getIntakeFilename(data, ext);
+                a.download = getIntakeFilename(data);
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
