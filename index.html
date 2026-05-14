@@ -71,6 +71,10 @@
   /* Zero border-radius enforcement (over and above Tailwind config) */
   button, input, textarea, select, .card, [class*="rounded"] { border-radius: 0 !important; }
 
+  /* Explicit circle escape valve — for transition pulse rings, success checks,
+     spinners, and numbered step circles where the round shape carries meaning. */
+  .circle { border-radius: 9999px !important; }
+
   /* Range slider — sharp/square thumb with teal track on active side */
   input[type=range] { -webkit-appearance: none; background: transparent; }
   input[type=range]::-webkit-slider-runnable-track { height: 3px; background: #181818; }
@@ -123,40 +127,27 @@ const STEPS = [
   { n: 4, label: "Domains" },
   { n: 5, label: "Tools" },
   { n: 6, label: "Review" },
-  { n: 7, label: "Pricing" },
-  { n: 8, label: "Process" },
+  { n: 7, label: "Welcome" },
 ];
 
-const TIERS = [
-  {
-    id: "tier_1",
-    name: "Agent Build",
-    price: 2500,
-    deliveryDays: 14,
-    tagline: "Your agent, configured and deployed.",
-    includes: [
-      "Custom agent built to the spec you just defined",
-      "Calendar, email, research, and task coordination",
-      "3-6 tool integrations wired up",
-      "Deployment to your account",
-      "Handoff training session",
-    ],
-  },
-  {
-    id: "tier_2",
-    name: "Phase 1 Full",
-    price: 5000,
-    deliveryDays: 30,
-    tagline: "Agent + strategy. The full Phase 1 engagement.",
-    includes: [
-      "Everything in Agent Build, plus:",
-      "AI Strategy Report tailored to your business",
-      "AI Org Chart — mapping your future AI workforce",
-      "AI Employee Strategy",
-      "Phase 2 Implementation Roadmap",
-    ],
-    recommendedFor: "Teams committing to AI as a long-term operating model.",
-  },
+// Pricing is deferred — keeping TIERS constant here for the day we add a tier-pick step back.
+// const TIERS = [...]  // dropped from runtime; see git history if needed.
+
+// TIERS removed from runtime — pricing step deferred. Preserved in git history.
+// To restore: re-add the TIERS array + Step7Pricing component + state fields and
+// reinsert the step in STEPS (between Review and Welcome).
+
+const TEAM_SIZES = [
+  { value: "solo", label: "Just me" },
+  { value: "2-5", label: "2-5" },
+  { value: "6-20", label: "6-20" },
+  { value: "21-50", label: "21-50" },
+  { value: "50+", label: "50+" },
+];
+
+const AGENT_SCOPES = [
+  { value: "personal", label: "1-to-1", desc: "Just for me" },
+  { value: "shared", label: "1-to-many", desc: "Used across our team" },
 ];
 
 const EMOJIS = ["🌊", "🌸", "⚡", "🔮", "🎯", "🧭", "🦅", "🌿", "🔥", "⭐", "🌙", "☀️", "🎨", "🧠", "💎", "🚀", "🦊", "🐉", "🌀", "🏔️"];
@@ -283,6 +274,8 @@ const initialData = {
   businessWebsite: "",
   businessDescription: "",
   targetAudience: "",
+  teamSize: "",
+  agentScope: "",
   industries: [],
   industryOther: "",
   agentName: "",
@@ -304,8 +297,6 @@ const initialData = {
   priorityIntegrations: [],
   integrationsOther: "",
   reviewConfirmed: false,
-  pricingTier: null,
-  moveForward: false,
 };
 
 // ============================================================================
@@ -339,8 +330,9 @@ function App() {
       return;
     }
 
-    // Step 6 (Review) and Step 7 (Pricing) are fully internal — own buttons, no footer next
-    // They each call setStep directly via their own onSubmit prop
+    // Step 6 (Review) is fully internal — owns its own buttons, no footer next.
+    // It calls setStep(7) directly when the consultant confirms.
+    // Step 7 (Welcome/Congrats) is the final page — no transition into it from the footer.
 
     const transitions = {
       1: { emoji: "🏢", title: "Creating your workspace", sub: "Provisioning session" },
@@ -353,7 +345,7 @@ function App() {
     const label = transitions[step];
 
     triggerTransition(label, () => {
-      setStep(s => Math.min(8, s + 1));
+      setStep(s => Math.min(7, s + 1));
     });
   };
 
@@ -377,8 +369,7 @@ function App() {
           {step === 4 && <Step4Domains data={data} update={update} />}
           {step === 5 && <Step5Tools data={data} update={update} />}
           {step === 6 && <Step6Review data={data} editFromReview={editFromReview} onSubmit={() => setStep(7)} onBack={() => setStep(5)} />}
-          {step === 7 && <Step7Pricing data={data} update={update} onSubmit={() => setStep(8)} onBack={() => setStep(6)} />}
-          {step === 8 && <Step8Process data={data} />}
+          {step === 7 && <Step7Welcome data={data} />}
         </div>
       </main>
       {step < 6 && <Footer step={step} canContinue={canContinue} next={next} back={back} returnToReview={data._returnToReview} />}
@@ -409,10 +400,10 @@ function Transition({ label }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center overlay-in" style={{ background: "rgba(247, 243, 234, 0.96)", backdropFilter: "blur(6px)" }}>
       <div className="text-center px-6 max-w-md">
         <div className="relative w-24 h-24 mx-auto mb-6">
-          {!isQuick && <div className="absolute inset-0 border-4 border-accent pulse-ring"></div>}
+          {!isQuick && <div className="absolute inset-0 border-4 border-accent pulse-ring circle"></div>}
           <div className={`absolute inset-0 flex items-center justify-center text-4xl ${isQuick ? "scale-in" : ""}`}>
             {isQuick ? (
-              <div className="w-16 h-16 bg-ink border-2 border-ink shadow-brut flex items-center justify-center">
+              <div className="w-16 h-16 bg-ink border-2 border-ink shadow-brut flex items-center justify-center circle">
                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#3EB8C8" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                   <polyline className="check-draw" points="5 12 10 17 19 8" />
                 </svg>
@@ -430,9 +421,9 @@ function Transition({ label }) {
             {label.title}
             {!isQuick && (
               <span className="inline-flex items-center ml-1">
-                <span className="w-1.5 h-1.5 bg-ink dot-bounce mx-0.5" style={{ animationDelay: "0s" }}></span>
-                <span className="w-1.5 h-1.5 bg-ink dot-bounce mx-0.5" style={{ animationDelay: "0.2s" }}></span>
-                <span className="w-1.5 h-1.5 bg-ink dot-bounce mx-0.5" style={{ animationDelay: "0.4s" }}></span>
+                <span className="w-1.5 h-1.5 bg-ink dot-bounce mx-0.5 circle" style={{ animationDelay: "0s" }}></span>
+                <span className="w-1.5 h-1.5 bg-ink dot-bounce mx-0.5 circle" style={{ animationDelay: "0.2s" }}></span>
+                <span className="w-1.5 h-1.5 bg-ink dot-bounce mx-0.5 circle" style={{ animationDelay: "0.4s" }}></span>
               </span>
             )}
           </div>
@@ -461,17 +452,22 @@ function Transition({ label }) {
 function validateStep(step, d) {
   switch (step) {
     case 1: return d.email.includes("@") && d.name.length >= 2;
-    case 2: return d.businessName.length >= 2 && d.businessWebsite.length >= 4 && d.businessDescription.length >= 20;
+    case 2: return d.businessName.length >= 2 && d.businessWebsite.length >= 4 && d.businessDescription.length >= 20 && d.teamSize && d.agentScope;
     case 3: return d.agentName.length >= 2 && (d.agentEmoji || d.agentChoosesEmoji) && d.agentDescription.length >= 5 && d.communicationStyle;
     case 4: return d.workDomains.length >= 1 && d.priorityDomains.length === Math.min(3, d.workDomains.length);
     case 5: {
-      const picked = Object.keys(d.integrations).length;
-      if (picked < 1) return false;
-      const requiredPriority = Math.min(3, picked);
-      return d.priorityIntegrations.length === requiredPriority;
+      // Validation only counts CORE (non-CRM) integrations — CRMs are add-ons that don't need ranking
+      const coreIds = Object.keys(d.integrations).filter(id => {
+        const i = INTEGRATIONS.find(x => x.id === id);
+        return i && i.category !== "crm";
+      });
+      if (coreIds.length < 1) return false;
+      const requiredPriority = Math.min(3, coreIds.length);
+      const corePriorityCount = d.priorityIntegrations.filter(id => coreIds.includes(id)).length;
+      return corePriorityCount === requiredPriority;
     }
     // Step 6 is the Review/Confirm page (internal own-button, no footer)
-    case 7: return d.pricingTier && d.moveForward;  // pricing gate: tier + commitment
+    // Step 7 (Welcome/Congrats) is the final page — no validation, no footer.
     default: return true;
   }
 }
@@ -692,6 +688,45 @@ function Step2({ data, update }) {
           className={inputClass}
         />
       </Field>
+
+      <div className="pt-4 border-t border-ink/15">
+        <div className="mono text-xs text-ink/60 uppercase tracking-widest font-semibold mb-3">Team context</div>
+        <Field label="How many people are on your team?" required>
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+            {TEAM_SIZES.map(t => (
+              <button
+                key={t.value}
+                onClick={() => update({ teamSize: t.value })}
+                className={`chip text-sm px-3 py-2 border-2 transition-all ${
+                  data.teamSize === t.value
+                    ? "bg-ink text-paper border-ink"
+                    : "bg-card border-ink/25 hover:border-ink hover:bg-accentSoft"
+                }`}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+        </Field>
+        <Field label="Will this agent be for one person or the whole team?" hint="One-to-one means the agent is yours alone. One-to-many means your team uses it." required>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+            {AGENT_SCOPES.map(s => (
+              <button
+                key={s.value}
+                onClick={() => update({ agentScope: s.value })}
+                className={`chip text-left p-3 border-2 transition-all ${
+                  data.agentScope === s.value
+                    ? "bg-ink text-paper border-ink"
+                    : "bg-card border-ink/25 hover:border-ink hover:bg-accentSoft"
+                }`}
+              >
+                <div className="display font-black text-sm uppercase tracking-tight">{s.label}</div>
+                <div className={`text-xs mt-0.5 ${data.agentScope === s.value ? "text-paper/70" : "text-ink/60"}`}>{s.desc}</div>
+              </button>
+            ))}
+          </div>
+        </Field>
+      </div>
     </StepShell>
   );
 }
@@ -1076,70 +1111,103 @@ function Step5Tools({ data, update }) {
     }
   };
 
+  // Split integrations: standard (non-CRM, included in build) and CRM (add-on, separately quoted)
+  const isCRM = (i) => i.category === "crm";
+  const coreIntegrations = INTEGRATIONS.filter(i => !isCRM(i));
+  const crmIntegrations = INTEGRATIONS.filter(i => isCRM(i));
+
   const planned = Object.keys(data.integrations).length;
-  const maxPriority = Math.min(3, planned);
+  // Priority ranking only applies to CORE tools — CRMs are add-ons, not part of the launch priority list
+  const corePlanned = Object.keys(data.integrations).filter(id => {
+    const i = INTEGRATIONS.find(x => x.id === id);
+    return i && !isCRM(i);
+  });
+  const corePrioritySelected = data.priorityIntegrations.filter(id => corePlanned.includes(id)).length;
+  const maxPriority = Math.min(3, corePlanned.length);
   const allLabel = (id) => INTEGRATIONS.find(i => i.id === id)?.label;
+
+  const renderToolButton = (i) => {
+    const isPlanned = data.integrations[i.id]?.planned;
+    const required = requiredIds.has(i.id);
+    return (
+      <button
+        key={i.id}
+        onClick={() => toggle(i.id)}
+        className={`flex items-center gap-3 p-3 border-2 text-left transition-all ${
+          isPlanned ? "bg-accentSoft border-ink" : "bg-card border-ink/25 hover:border-ink hover:bg-accentSoft"
+        }`}
+      >
+        <div className={`w-5 h-5 flex items-center justify-center flex-shrink-0 ${
+          isPlanned ? "bg-ink" : "border-2 border-ink/25"
+        }`}>
+          {isPlanned && (
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#3EB8C8" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="5 12 10 17 19 8" />
+            </svg>
+          )}
+        </div>
+        <span className="text-sm font-medium flex-1">{i.label}</span>
+        {required && (
+          <span className="mono text-[10px] text-accent">SUGGESTED</span>
+        )}
+      </button>
+    );
+  };
 
   return (
     <StepShell
       eyebrow="Tools"
       title="Which tools should your agent connect to?"
-      subtitle="Pick everything your team uses. Then rank your top 3 — those are the ones we'll wire up at launch. (Agent Build covers up to 3 integrations.)"
+      subtitle="Pick everything your team uses. Then rank your top 3 standard tools — those are the ones we'll wire up at launch."
     >
-      <div className="grid grid-cols-2 gap-2">
-        {INTEGRATIONS.map(i => {
-          const isPlanned = data.integrations[i.id]?.planned;
-          const required = requiredIds.has(i.id);
-          return (
-            <button
-              key={i.id}
-              onClick={() => toggle(i.id)}
-              className={`flex items-center gap-3 p-3 rounded-md border text-left transition-all ${
-                isPlanned ? "bg-accentSoft border-ink" : "bg-card border-2 border-ink/25 hover:border-ink hover:bg-accentSoft"
-              }`}
-            >
-              <div className={`w-5 h-5 rounded flex items-center justify-center flex-shrink-0 ${
-                isPlanned ? "bg-ink" : "border border-ink/25"
-              }`}>
-                {isPlanned && (
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fafaf9" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="5 12 10 17 19 8" />
-                  </svg>
-                )}
-              </div>
-              <span className="text-sm font-medium flex-1">{i.label}</span>
-              {required && (
-                <span className="mono text-[10px] text-accent">SUGGESTED</span>
-              )}
-            </button>
-          );
-        })}
+      {/* Standard tools — included in the build */}
+      <div className="mono text-xs text-ink/60 uppercase tracking-widest font-semibold mb-2 flex items-center gap-2">
+        <span className="inline-block w-6 h-px bg-accent"></span>
+        Standard integrations (included)
       </div>
-      {planned > 0 && (
+      <div className="grid grid-cols-2 gap-2">
+        {coreIntegrations.map(renderToolButton)}
+      </div>
+
+      {/* CRMs — add-on, NOT in standard build */}
+      <div className="pt-6 border-t border-ink/15">
+        <div className="mono text-xs text-ink/60 uppercase tracking-widest font-semibold mb-1 flex items-center gap-2">
+          <span className="inline-block w-6 h-px bg-accent"></span>
+          CRM add-ons (not in standard build)
+        </div>
+        <p className="text-sm text-ink/70 mb-3">
+          Note any CRMs your team uses. These aren't included in the standard agent build — they're quoted separately if you want them connected.
+        </p>
+        <div className="grid grid-cols-2 gap-2">
+          {crmIntegrations.map(renderToolButton)}
+        </div>
+      </div>
+
+      {corePlanned.length > 0 && (
         <div className="pt-6 border-t border-ink/15">
-          <div className="mono text-xs text-ink/60 uppercase tracking-widest mb-1">Priority ranking</div>
+          <div className="mono text-xs text-ink/60 uppercase tracking-widest font-semibold mb-1">Priority ranking</div>
           <p className="text-sm text-ink/70 mb-4">
-            {planned === 1 && "Your #1 integration."}
-            {planned === 2 && "Rank both in order — tap #1 first, then #2."}
-            {planned >= 3 && `Pick your top 3 in order — tap #1 first. Tap again to remove.`}
+            {corePlanned.length === 1 && "Your #1 integration."}
+            {corePlanned.length === 2 && "Rank both in order — tap #1 first, then #2."}
+            {corePlanned.length >= 3 && `Pick your top 3 in order — tap #1 first. Tap again to remove.`}
             {" "}
             <span className="mono text-xs text-ink/40">
-              ({data.priorityIntegrations.length} of {maxPriority} selected)
+              ({corePrioritySelected} of {maxPriority} selected)
             </span>
           </p>
           <div className="space-y-2">
-            {Object.keys(data.integrations).map(id => {
+            {corePlanned.map(id => {
               const rank = data.priorityIntegrations.indexOf(id);
               return (
                 <button
                   key={id}
                   onClick={() => togglePriority(id)}
-                  className={`w-full flex items-center gap-3 p-3 rounded-md border text-left transition-all ${
+                  className={`w-full flex items-center gap-3 p-3 border-2 text-left transition-all ${
                     rank >= 0 ? "bg-card border-ink" : "bg-paper border-ink/15 hover:border-ink/40"
                   }`}
                 >
-                  <div className={`w-8 h-8 rounded flex items-center justify-center mono text-sm font-semibold ${
-                    rank >= 0 ? "bg-ink text-paper" : "bg-card border border-ink/25 text-ink/40"
+                  <div className={`w-8 h-8 flex items-center justify-center mono text-sm font-semibold ${
+                    rank >= 0 ? "bg-ink text-paper" : "bg-card border-2 border-ink/25 text-ink/40"
                   }`}>
                     {rank >= 0 ? rank + 1 : "—"}
                   </div>
@@ -1211,7 +1279,6 @@ function buildIntakeText(data) {
   // Plain text — designed to read naturally in an email attachment, terminal, or text editor.
   // No markdown markup. Uses ASCII separators and indentation for visual structure.
 
-  const tier = TIERS.find(t => t.id === data.pricingTier);
   const industries = data.industries
     .map(v => INDUSTRIES.find(i => i.value === v)?.label)
     .filter(Boolean);
@@ -1224,6 +1291,11 @@ function buildIntakeText(data) {
     .filter(id => !data.priorityDomains.includes(id))
     .map(id => DOMAINS.find(d => d.id === id)?.label)
     .filter(Boolean);
+
+  // Split integrations into core (non-CRM) and CRM add-ons
+  const isCRM = (id) => INTEGRATIONS.find(i => i.id === id)?.category === "crm";
+  const teamSizeLabel = TEAM_SIZES.find(t => t.value === data.teamSize)?.label;
+  const agentScopeObj = AGENT_SCOPES.find(s => s.value === data.agentScope);
 
   const now = new Date();
   const dateStr = now.toLocaleString("en-US", { dateStyle: "long", timeStyle: "short" });
@@ -1247,7 +1319,6 @@ function buildIntakeText(data) {
   lines.push("");
   lines.push(kv("Captured", dateStr));
   lines.push(kv("Source", "Discovery call"));
-  lines.push(kv("Engagement", tier ? `${tier.name}  ·  $${tier.price.toLocaleString()}  ·  ${tier.deliveryDays} days` : "Not selected"));
   lines.push("");
 
   // Client
@@ -1263,6 +1334,12 @@ function buildIntakeText(data) {
   lines.push(`  ${data.businessName}` + (data.businessWebsite ? `   (${data.businessWebsite})` : ""));
   if (industries.length > 0) {
     lines.push(kv("Industries", industries.join(", ")));
+  }
+  if (teamSizeLabel) {
+    lines.push(kv("Team size", teamSizeLabel));
+  }
+  if (agentScopeObj) {
+    lines.push(kv("Agent scope", `${agentScopeObj.label} (${agentScopeObj.desc})`));
   }
   lines.push("");
   // Wrap description to ~66 cols, indented 2 spaces
@@ -1315,52 +1392,49 @@ function buildIntakeText(data) {
     lines.push("");
   }
 
-  // Tools
+  // Tools — split into core (non-CRM, in the standard build) and CRM add-ons (NOT in standard build)
+  const allPicked = Object.keys(data.integrations);
+  const coreToolIds = allPicked.filter(id => !isCRM(id));
+  const crmToolIds = allPicked.filter(id => isCRM(id));
+
+  const corePriorityIds = data.priorityIntegrations.filter(id => coreToolIds.includes(id));
+  const coreSecondaryIds = coreToolIds.filter(id => !corePriorityIds.includes(id));
+  const labelFor = (id) => INTEGRATIONS.find(i => i.id === id)?.label || id;
+
   lines.push(...section("Tools to connect at launch"));
   lines.push("");
-  const priorityIntegrationLabels = data.priorityIntegrations
-    .map(id => INTEGRATIONS.find(i => i.id === id)?.label)
-    .filter(Boolean);
-  const secondaryIntegrationLabels = Object.keys(data.integrations)
-    .filter(id => !data.priorityIntegrations.includes(id))
-    .map(id => INTEGRATIONS.find(i => i.id === id)?.label)
-    .filter(Boolean);
-
-  if (priorityIntegrationLabels.length > 0) {
-    lines.push(`  Priority (top ${priorityIntegrationLabels.length}):`);
-    priorityIntegrationLabels.forEach((label, i) => lines.push(`    ${i + 1}.  ${label}`));
+  if (corePriorityIds.length > 0) {
+    lines.push(`  Priority (top ${corePriorityIds.length}):`);
+    corePriorityIds.forEach((id, i) => lines.push(`    ${i + 1}.  ${labelFor(id)}`));
     lines.push("");
   }
-  if (secondaryIntegrationLabels.length > 0) {
-    lines.push(`  Also discussed: ${secondaryIntegrationLabels.join(", ")}`);
+  if (coreSecondaryIds.length > 0) {
+    lines.push(`  Also discussed: ${coreSecondaryIds.map(labelFor).join(", ")}`);
     lines.push("");
   }
-  if (priorityIntegrationLabels.length === 0 && secondaryIntegrationLabels.length === 0) {
+  if (corePriorityIds.length === 0 && coreSecondaryIds.length === 0) {
     lines.push(`  (none selected)`);
+    lines.push("");
   }
   if (data.integrationsOther) {
     lines.push(kv("Other", data.integrationsOther));
+    lines.push("");
   }
-  lines.push("");
 
-  // Engagement details
-  if (tier) {
-    lines.push(...section("Engagement details"));
+  // CRM add-ons — flagged separately because they're NOT part of the standard build
+  if (crmToolIds.length > 0) {
+    lines.push(...section("CRM add-ons (not in standard build)"));
     lines.push("");
-    lines.push(`  ${tier.name}`);
-    lines.push(`  $${tier.price.toLocaleString()}  ·  ${tier.deliveryDays}-day delivery`);
+    lines.push(`  These integrations are noted but require a separate quote.`);
+    lines.push(`  They are NOT included in the standard agent build.`);
     lines.push("");
-    lines.push(`  "${tier.tagline}"`);
-    lines.push("");
-    lines.push(`  Includes:`);
-    tier.includes.forEach(item => lines.push(`    • ${item}`));
+    crmToolIds.forEach(id => lines.push(`    • ${labelFor(id)}`));
     lines.push("");
   }
 
   // Footer
   lines.push(HEAVY);
-  lines.push("  Generated by SN Discovery v2.1");
-  lines.push("  Companion JSON file delivered for Lexi ingestion.");
+  lines.push("  Generated by SN Agent Discovery");
   lines.push(HEAVY);
 
   return lines.join("\n");
@@ -1439,9 +1513,14 @@ function postToDrive(data) {
 
 function AgentSpecCards({ data, editFromReview }) {
   const connectedIntegrations = Object.keys(data.integrations);
+  const isCRM = (id) => INTEGRATIONS.find(i => i.id === id)?.category === "crm";
+  const coreIntegrationIds = connectedIntegrations.filter(id => !isCRM(id));
+  const crmIntegrationIds = connectedIntegrations.filter(id => isCRM(id));
   const industryLabels = data.industries
     .map(v => INDUSTRIES.find(i => i.value === v)?.label)
     .filter(Boolean);
+  const teamSizeLabel = TEAM_SIZES.find(t => t.value === data.teamSize)?.label;
+  const agentScopeObj = AGENT_SCOPES.find(s => s.value === data.agentScope);
   const displayEmoji = data.agentChoosesEmoji ? "✨" : data.agentEmoji;
 
   return (
@@ -1487,6 +1566,20 @@ function AgentSpecCards({ data, editFromReview }) {
           )}
           <p className="text-ink/70 mt-2">{data.businessDescription}</p>
           {data.targetAudience && <p className="text-ink/60 text-xs mt-1">Serves: {data.targetAudience}</p>}
+          {(teamSizeLabel || agentScopeObj) && (
+            <div className="mt-2 flex flex-wrap gap-1.5 items-center">
+              {teamSizeLabel && (
+                <span className="mono text-xs bg-ink/5 text-ink/70 px-1.5 py-0.5 rounded">
+                  Team: {teamSizeLabel}
+                </span>
+              )}
+              {agentScopeObj && (
+                <span className="mono text-xs bg-ink/5 text-ink/70 px-1.5 py-0.5 rounded">
+                  Scope: {agentScopeObj.label}
+                </span>
+              )}
+            </div>
+          )}
         </div>
       </SummaryCard>
       <SummaryCard title="Work domains" onEdit={editFromReview ? () => editFromReview(4) : null}>
@@ -1516,28 +1609,48 @@ function AgentSpecCards({ data, editFromReview }) {
             ⚠ No integrations on the launch list yet.
           </div>
         ) : (
-          <div className="space-y-2">
-            <div className="flex flex-wrap gap-1.5">
-              {connectedIntegrations.map(id => {
-                const priority = data.priorityIntegrations.indexOf(id);
-                return (
-                  <span
-                    key={id}
-                    className={`text-xs px-2 py-1 rounded-full ${
-                      priority >= 0 ? "bg-ink text-paper font-medium" : "bg-ink/5 text-ink/80"
-                    }`}
-                  >
-                    {priority >= 0 ? `${priority + 1}. ` : ""}{INTEGRATIONS.find(i => i.id === id)?.label}
-                  </span>
-                );
-              })}
-              {data.integrationsOther && (
-                <span className="text-xs bg-ink/5 text-ink/80 px-2 py-1 rounded-full italic">+ {data.integrationsOther}</span>
-              )}
-            </div>
-            <p className="mono text-xs text-ink/60">
-              Numbered ones launch with the build. Others stay in the queue for later.
-            </p>
+          <div className="space-y-3">
+            {coreIntegrationIds.length > 0 && (
+              <div>
+                <div className="mono text-[10px] text-ink/60 uppercase tracking-widest font-semibold mb-1.5">Standard (included)</div>
+                <div className="flex flex-wrap gap-1.5">
+                  {coreIntegrationIds.map(id => {
+                    const priority = data.priorityIntegrations.indexOf(id);
+                    return (
+                      <span
+                        key={id}
+                        className={`text-xs px-2 py-1 ${
+                          priority >= 0 ? "bg-ink text-paper font-medium" : "bg-ink/5 text-ink/80"
+                        }`}
+                      >
+                        {priority >= 0 ? `${priority + 1}. ` : ""}{INTEGRATIONS.find(i => i.id === id)?.label}
+                      </span>
+                    );
+                  })}
+                  {data.integrationsOther && (
+                    <span className="text-xs bg-ink/5 text-ink/80 px-2 py-1 italic">+ {data.integrationsOther}</span>
+                  )}
+                </div>
+                <p className="mono text-xs text-ink/60 mt-1.5">
+                  Numbered ones launch with the build. Others stay in the queue for later.
+                </p>
+              </div>
+            )}
+            {crmIntegrationIds.length > 0 && (
+              <div className="pt-2 border-t border-ink/10">
+                <div className="mono text-[10px] text-accent uppercase tracking-widest font-semibold mb-1.5">CRM add-ons (quoted separately)</div>
+                <div className="flex flex-wrap gap-1.5">
+                  {crmIntegrationIds.map(id => (
+                    <span key={id} className="text-xs px-2 py-1 bg-accentSoft text-accent font-medium border border-accent">
+                      {INTEGRATIONS.find(i => i.id === id)?.label}
+                    </span>
+                  ))}
+                </div>
+                <p className="mono text-xs text-ink/60 mt-1.5">
+                  Not part of the standard build — SN will quote separately.
+                </p>
+              </div>
+            )}
           </div>
         )}
       </SummaryCard>
@@ -1631,7 +1744,7 @@ function Step6Review({ data, editFromReview, onSubmit, onBack }) {
   return (
     <div className="text-center py-8">
       <div className="relative w-32 h-32 mx-auto mb-8">
-        <div className="absolute inset-0 border-4 border-accent pulse-ring"></div>
+        <div className="absolute inset-0 border-4 border-accent pulse-ring circle"></div>
         <div key={stageIdx} className="absolute inset-0 flex items-center justify-center text-5xl scale-in">
           {stage.emoji}
         </div>
@@ -1646,7 +1759,7 @@ function Step6Review({ data, editFromReview, onSubmit, onBack }) {
           return (
             <div
               key={i}
-              className={`w-10 h-10 flex items-center justify-center text-lg transition-all border-2 ${
+              className={`w-10 h-10 flex items-center justify-center text-lg transition-all border-2 circle ${
                 active ? "bg-accent border-ink scale-110 shadow-brut-sm" :
                 done ? "bg-ink border-ink text-accent" :
                 "bg-card border-ink/20 opacity-50"
@@ -1666,143 +1779,48 @@ function Step6Review({ data, editFromReview, onSubmit, onBack }) {
 }
 
 // ============================================================================
-// STEP 7 — PRICING
+// STEP 7 — WELCOME / CONGRATS (final page)
+// AI Operator framing — "first step on the path to becoming an AI Operator"
+// Generic timeline that doesn't depend on a pricing tier
 // ============================================================================
 
-function Step7Pricing({ data, update, onSubmit, onBack }) {
-  const isComplex = data.workDomains.length >= 4 ||
-    data.workDomains.some(d => ["content", "research", "crm", "social", "recruiting"].includes(d));
-  const recommendedTier = isComplex ? "tier_2" : null;
-  const canSubmit = data.pricingTier && data.moveForward;
+function Step7Welcome({ data }) {
+  const firstName = data.name?.split(" ")[0] || "there";
 
-  return (
-    <StepShell
-      eyebrow="Pricing"
-      title="Choose your engagement."
-      subtitle="Two ways to start. Both deliver a working agent — Phase 1 Full adds the strategy work behind it."
-    >
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-        {TIERS.map(tier => {
-          const selected = data.pricingTier === tier.id;
-          const recommended = recommendedTier === tier.id;
-          return (
-            <button
-              key={tier.id}
-              onClick={() => update({ pricingTier: tier.id })}
-              className={`w-full text-left p-6 border-2 border-ink transition-all relative ${
-                selected
-                  ? "bg-accent shadow-brut-lg -translate-x-1 -translate-y-1"
-                  : "bg-card shadow-brut hover:shadow-brut-hover hover:-translate-x-0.5 hover:-translate-y-0.5"
-              }`}
-            >
-              {recommended && (
-                <div className="absolute -top-3 left-4 bg-ink text-accent display font-black text-[10px] px-2 py-1 uppercase tracking-widest border-2 border-ink">
-                  Recommended
-                </div>
-              )}
-              <div className="flex items-baseline justify-between mb-2">
-                <div className="display font-black text-xl uppercase tracking-tight">{tier.name}</div>
-                {selected && (
-                  <div className="w-7 h-7 bg-ink text-accent flex items-center justify-center font-black">✓</div>
-                )}
-              </div>
-              <div className="display font-black text-4xl tracking-tight mb-1 text-ink">
-                ${tier.price.toLocaleString()}
-                <span className="text-sm text-ink/70 font-normal ml-2 mono uppercase tracking-widest">· {tier.deliveryDays} days</span>
-              </div>
-              <p className="serif italic text-sm text-ink/80 mb-4">{tier.tagline}</p>
-              <ul className="space-y-1.5 text-sm">
-                {tier.includes.map((item, i) => (
-                  <li key={i} className="flex items-start gap-2">
-                    <span className={`mt-0.5 font-black ${selected ? "text-ink" : "text-accent"}`}>✓</span>
-                    <span className={item.endsWith(":") ? "font-semibold" : ""}>{item}</span>
-                  </li>
-                ))}
-              </ul>
-            </button>
-          );
-        })}
-      </div>
-      <div className="pt-5 border-t border-ink/15 mt-2">
-        <label className="flex items-start gap-3 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={data.moveForward}
-            onChange={e => update({ moveForward: e.target.checked })}
-            className="mt-0.5 w-4 h-4 accent-ink"
-          />
-          <span className="text-sm text-ink/80">
-            I'd like to move forward and start the build.
-          </span>
-        </label>
-      </div>
-      <div className="flex items-center justify-between flex-wrap gap-3 pt-2">
-        <button
-          onClick={onBack}
-          className="mono text-xs uppercase tracking-widest font-semibold text-ink/70 hover:text-ink transition-colors"
-        >
-          ← Back to review
-        </button>
-        <button
-          onClick={onSubmit}
-          disabled={!canSubmit}
-          className="display font-black text-xs uppercase tracking-widest bg-accent text-ink border-2 border-ink px-6 py-3 shadow-brut hover:shadow-brut-hover hover:-translate-x-0.5 hover:-translate-y-0.5 active:translate-x-0 active:translate-y-0 active:shadow-brut-sm disabled:bg-ink/10 disabled:text-ink/30 disabled:shadow-none disabled:cursor-not-allowed disabled:hover:translate-x-0 disabled:hover:translate-y-0 transition-all"
-        >
-          Let's do it →
-        </button>
-      </div>
-      <p className="text-xs text-ink/60 text-center pt-1">
-        Final tier details and contract sent within one business day. No payment captured here.
-      </p>
-    </StepShell>
-  );
-}
-
-// ============================================================================
-// STEP 8 — OUR PROCESS (final page)
-// ============================================================================
-
-function Step8Process({ data }) {
-  const tier = TIERS.find(t => t.id === data.pricingTier);
-  const days = tier?.deliveryDays || 30;
-  const isFullPhase = data.pricingTier === "tier_2";
-
-  // Build process timeline based on tier
-  const timeline = isFullPhase ? [
-    { week: "Week 1", title: "Discovery deep-dive", body: "We map your workflows, audit your systems, and confirm the agent spec we built together today." },
-    { week: "Week 2", title: "Agent build + strategy work begins", body: `${data.agentName || "Your agent"} gets configured and deployed. We start work on your AI Strategy Report and Org Chart.` },
-    { week: "Week 3", title: "Review + iteration", body: "You test the agent in real work. We refine based on feedback. Strategy deliverables drafted." },
-    { week: "Week 4", title: "Final handoff", body: "Polished agent live in your account. Strategy Report, Org Chart, Employee Strategy, and Phase 2 Roadmap delivered." },
-  ] : [
-    { week: "Days 1-3", title: "Discovery confirmation", body: "We map your workflows in detail. Confirm the agent spec we built together today." },
-    { week: "Days 4-9", title: "Agent build", body: `${data.agentName || "Your agent"} gets configured: personality wired, voice tuned, work domains mapped.` },
-    { week: "Days 10-12", title: "Tool integration", body: "Your selected tools get connected. We test every flow end-to-end." },
-    { week: "Days 13-14", title: "Handoff + training", body: "Final deployment to your account. Live training call. You walk away with a working agent." },
+  const timeline = [
+    { tag: "Step 1", title: "Discovery captured", body: "You just finished it. Your spec is on its way to our team." },
+    { tag: "Step 2", title: "Pricing + contract", body: "We'll review the spec internally and send pricing options that fit the build, plus a contract — within one business day." },
+    { tag: "Step 3", title: "Build kickoff", body: `Once signed, the build for ${data.agentName || "your agent"} starts immediately. You'll get progress updates along the way.` },
+    { tag: "Step 4", title: "Handoff + training", body: "When the agent is ready, we run a live handoff call. You walk away with a working agent and the skills to operate it." },
   ];
 
   return (
     <div className="py-4 fade-in">
       <div className="text-center mb-10">
-        <div className="w-20 h-20 bg-ink text-accent border-2 border-ink shadow-brut mx-auto mb-6 flex items-center justify-center display font-black text-4xl">
+        <div className="w-20 h-20 bg-ink text-accent border-2 border-ink shadow-brut mx-auto mb-6 flex items-center justify-center circle font-black text-4xl">
           ✓
         </div>
-        <div className="mono text-xs text-ink/60 uppercase tracking-widest mb-2">Intake received</div>
-        <h1 className="text-3xl md:text-4xl font-bold mb-3">
-          Here's what happens next.
+        <div className="mono text-xs text-accent uppercase tracking-widest font-semibold mb-2">Welcome, AI Operator</div>
+        <h1 className="text-3xl md:text-5xl font-bold mb-4">
+          You just took your first step.
         </h1>
-        <p className="text-ink/70 text-base max-w-md mx-auto">
-          You've chosen <span className="font-semibold">{tier?.name || "an engagement"}</span>. Over the next {days} days, here's our process.
+        <p className="text-ink/75 text-base md:text-lg max-w-xl mx-auto leading-relaxed">
+          Building your AI agent is the first step on the path to becoming an{" "}
+          <span className="serif italic font-semibold">AI Operator</span> —
+          the person on your team who knows how to design, deploy, and run intelligent systems.
+          You're not just getting an agent, {firstName}. You're learning how to build one.
         </p>
       </div>
 
       <div className="max-w-2xl mx-auto">
+        <div className="mono text-xs text-ink/60 uppercase tracking-widest font-semibold mb-3 px-1">What happens next</div>
         {timeline.map((stage, i) => (
           <div key={i} className={`flex gap-4 items-start p-5 bg-card border-2 border-ink ${i > 0 ? "border-t-0" : ""}`}>
-            <div className="w-10 h-10 bg-ink text-accent display font-black flex items-center justify-center flex-shrink-0 text-lg">
+            <div className="w-10 h-10 bg-ink text-accent display font-black flex items-center justify-center flex-shrink-0 text-lg circle">
               {i + 1}
             </div>
             <div className="flex-1">
-              <div className="mono text-xs text-ink/60 uppercase tracking-widest font-semibold mb-1">{stage.week}</div>
+              <div className="mono text-xs text-ink/60 uppercase tracking-widest font-semibold mb-1">{stage.tag}</div>
               <div className="display font-black uppercase text-base text-ink mb-1">{stage.title}</div>
               <p className="text-sm text-ink/70 leading-relaxed">{stage.body}</p>
             </div>
@@ -1810,20 +1828,8 @@ function Step8Process({ data }) {
         ))}
       </div>
 
-      <div className="max-w-2xl mx-auto mt-8 bg-card border-2 border-ink shadow-brut p-6">
-        <div className="display font-black text-sm uppercase tracking-tight text-ink mb-3 flex items-center gap-2">
-          <span className="inline-block w-2 h-2 bg-accent"></span>
-          What you can expect this week
-        </div>
-        <ol className="text-sm text-ink/80 space-y-2 list-decimal list-inside">
-          <li>A contract from john@thestrategyninjas.com within one business day.</li>
-          <li>An invoice for {tier ? `$${tier.price.toLocaleString()}` : "your engagement"} alongside the contract.</li>
-          <li>A kickoff call scheduled the day the contract is signed.</li>
-        </ol>
-      </div>
-
-      <p className="text-xs text-ink/60 text-center mt-8 max-w-md mx-auto">
-        Questions before then? Reach out anytime at john@thestrategyninjas.com. We're glad to have you, {data.name?.split(" ")[0] || "there"}.
+      <p className="text-xs text-ink/60 text-center mt-10 max-w-md mx-auto">
+        Questions before we get back to you? Reach out anytime at john@thestrategyninjas.com.
       </p>
 
       <IntakePreview data={data} />
