@@ -1,7 +1,9 @@
-# Strategy Ninjas — Agent Discovery
+# Strategy Ninjas — Agent Setup
 
-Live tool for SN discovery calls.
+Self-serve setup form. Clients provide their details and credentials to deploy their AI agent.
 
 **Live:** https://strategynexus.github.io/agent-discovery/
 
-Single static page. Run locally with `python3 -m http.server 5182`, or open `index.html` directly.
+Sensitive fields (Telegram ID, bot token, API key) are encrypted client-side with RSA-OAEP before submission. Single static page, no build step.
+
+(Replaces the earlier multi-step discovery wizard, which remains in git history.)

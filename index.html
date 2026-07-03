@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Strategy Ninjas — Agent Discovery</title>
+<title>Strategy Ninjas — Agent Setup</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700;900&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Source+Serif+4:ital,wght@0,400;0,600;0,700;0,900;1,400&display=swap" rel="stylesheet">
@@ -24,421 +24,207 @@
           mono: ['JetBrains Mono', 'monospace'],
         },
         colors: {
-          // Strategy Ninjas brand palette
-          ink: '#181818',            // primary text + dark bg
-          paper: '#F7F3EA',          // warm cream (NOT pure white)
-          card: '#FFFFFF',           // card bg on light sections
-          darkCard: '#101010',       // card bg on dark sections
-          accent: '#3EB8C8',         // teal — primary accent
-          accentSoft: '#E8F6F8',     // pale teal tint for backgrounds
-          gold: '#BBB469',           // secondary accent (subtle, logo)
+          ink: '#181818',
+          paper: '#F7F3EA',
+          card: '#FFFFFF',
+          darkCard: '#101010',
+          accent: '#3EB8C8',
+          accentSoft: '#E8F6F8',
+          gold: '#BBB469',
         },
         boxShadow: {
-          // Signature brutalist hard shadows
           brut: '6px 6px 0 0 #181818',
           'brut-sm': '4px 4px 0 0 #181818',
           'brut-lg': '14px 14px 0 0 #181818',
           'brut-hover': '8px 8px 0 0 #181818',
         },
-        borderRadius: {
-          // Override defaults — brand is zero radius everywhere
-          DEFAULT: '0',
-          none: '0',
-          sm: '0',
-          md: '0',
-          lg: '0',
-          xl: '0',
-          '2xl': '0',
-          full: '0',
-        },
+        borderRadius: { DEFAULT: '0', none: '0', sm: '0', md: '0', lg: '0', xl: '0', '2xl': '0', full: '0' },
       },
     },
   };
 </script>
 <style>
-  /* Strategy Ninjas brand — brutalist-modern. Zero radius, sharp corners, warm cream, teal accent. */
   body { font-family: 'Inter', sans-serif; background: #F7F3EA; color: #181818; -webkit-font-smoothing: antialiased; }
   .display { font-family: 'Space Grotesk', system-ui, sans-serif; }
   .mono { font-family: 'JetBrains Mono', monospace; }
   .serif { font-family: 'Source Serif 4', Georgia, serif; }
-
-  /* Brand-styled headings — Source Serif 4 (Pro), heavy weight, UPPERCASE for that
-     editorial-brutalist masthead feel. Headlines stay sharp and bold but with serifs;
-     buttons + section labels stay in Space Grotesk (via .display) for contrast. */
   h1, h2, h3 { font-family: 'Source Serif 4', 'Source Serif Pro', Georgia, serif; font-weight: 900; text-transform: uppercase; letter-spacing: -0.01em; line-height: 0.95; }
   h1 { letter-spacing: -0.02em; line-height: 0.94; }
-
-  /* Zero border-radius enforcement (over and above Tailwind config) */
   button, input, textarea, select, .card, [class*="rounded"] { border-radius: 0 !important; }
-
-  /* Explicit circle escape valve — for transition pulse rings, success checks,
-     spinners, and numbered step circles where the round shape carries meaning. */
   .circle { border-radius: 9999px !important; }
-
-  /* Range slider — sharp/square thumb with teal track on active side */
-  input[type=range] { -webkit-appearance: none; background: transparent; }
-  input[type=range]::-webkit-slider-runnable-track { height: 3px; background: #181818; }
-  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 22px; width: 22px; background: #3EB8C8; border: 2px solid #181818; box-shadow: 3px 3px 0 0 #181818; margin-top: -10px; cursor: pointer; transition: transform 0.15s; }
-  input[type=range]::-webkit-slider-thumb:hover { transform: translate(-1px, -1px); box-shadow: 5px 5px 0 0 #181818; }
-
-  /* Checkboxes — square accent */
   input[type=checkbox] { accent-color: #3EB8C8; }
-
-  /* Selection */
   ::selection { background: #3EB8C8; color: #181818; }
   @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
   .fade-in { animation: fadeIn 0.3s ease-out; }
-  @keyframes pulse-ring { 0% { transform: scale(0.95); opacity: 1; } 100% { transform: scale(1.6); opacity: 0; } }
-  .pulse-ring { animation: pulse-ring 2s ease-out infinite; }
-  @keyframes spin-slow { to { transform: rotate(360deg); } }
-  .spin-slow { animation: spin-slow 2s linear infinite; }
-  .chip { transition: all 0.15s; }
-  @keyframes scaleIn { 0% { transform: scale(0.3); opacity: 0; } 60% { transform: scale(1.1); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
-  .scale-in { animation: scaleIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); }
-  @keyframes checkDraw { 0% { stroke-dashoffset: 40; } 100% { stroke-dashoffset: 0; } }
-  .check-draw { stroke-dasharray: 40; stroke-dashoffset: 40; animation: checkDraw 0.35s ease-out 0.4s forwards; }
   @keyframes overlayIn { from { opacity: 0; } to { opacity: 1; } }
   .overlay-in { animation: overlayIn 0.2s ease-out; }
-  @keyframes labelSlide { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-  .label-slide { animation: labelSlide 0.3s ease-out 0.15s both; }
-  @keyframes dotBounce { 0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; } 40% { transform: scale(1); opacity: 1; } }
-  .dot-bounce { animation: dotBounce 1.4s ease-in-out infinite; }
+  @keyframes scaleIn { 0% { transform: scale(0.3); opacity: 0; } 60% { transform: scale(1.1); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
+  .scale-in { animation: scaleIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); }
+  @keyframes spin-slow { to { transform: rotate(360deg); } }
+  .spin-slow { animation: spin-slow 1.2s linear infinite; }
 </style>
 </head>
 <body>
 <div id="root"></div>
 
 <script type="text/babel">
-const { useState, useEffect, useMemo } = React;
+const { useState, useMemo } = React;
 
 // ============================================================================
-// CONSTANTS
+// CONFIG
 // ============================================================================
 
-// Google Apps Script web-app URL that saves intake .txt files to the SN team Drive folder.
-// Empty string = Drive delivery disabled (only local download fires on Confirm).
-// To wire up: deploy the apps-script-backend.js companion file, paste the /exec URL here.
-const DRIVE_BACKEND_URL = "https://script.google.com/macros/s/AKfycbwlDjUnvf-2SSI-vVdIUaWNDHyC3z4OLWmbzFPWwLQx9PXTp59s5q1pgFX4eaRt8aZY/exec";
+// Google Apps Script web-app endpoint that saves the intake to Drive + emails the team.
+const BACKEND_URL = "https://script.google.com/macros/s/AKfycbwlDjUnvf-2SSI-vVdIUaWNDHyC3z4OLWmbzFPWwLQx9PXTp59s5q1pgFX4eaRt8aZY/exec";
 
-const STEPS = [
-  { n: 1, label: "Account" },
-  { n: 2, label: "Business" },
-  { n: 3, label: "Identity" },
-  { n: 4, label: "Domains" },
-  { n: 5, label: "Tools" },
-  { n: 6, label: "Review" },
-  { n: 7, label: "Welcome" },
-];
+// RSA-2048 public key (SPKI, base64). Encrypts the sensitive fields in the browser
+// before anything is sent. Only Strategy Ninjas holds the matching private key.
+// Safe to be public — a public key can lock but never unlock.
+const PUBLIC_KEY_SPKI_B64 = "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAqdrQfCwJpaHbHe54lugac03rbMCT6Vtu+ZKWtyA9J9ynWxua5qPlv8uzVsmugnlgE+0Zt3NgqOELwUcfsxRoClnY6hvv11NubZrzdV94W6kpvJ9sp7jBF3YwFVOK29hbNZVZcgm3SuIS1Uhu85rnsbfXvGy+pMONCBlWVzo3xWidxTyeszDFxCnfhJ1e/Q+rE1Ti2xD8Oe5WtI/ruCAI03Bk8XBrlERtDN4e3UX1uzaQeMT5jo9y+l97zSOVIkVUuzi85qN6PGIBpAAyqjy+f4tfk6G8QgapuXyaJI+KE55KLu0RY3DZssx3hVQGTCZ1a7ewT6f90kGVi6WyT49+wQIDAQAB";
 
-// Pricing is deferred — keeping TIERS constant here for the day we add a tier-pick step back.
-// const TIERS = [...]  // dropped from runtime; see git history if needed.
+const AGENT_TYPES = ["Chief of Staff", "Transaction Coordinator", "Other"];
 
-// TIERS removed from runtime — pricing step deferred. Preserved in git history.
-// To restore: re-add the TIERS array + Step7Pricing component + state fields and
-// reinsert the step in STEPS (between Review and Welcome).
+// ============================================================================
+// ENCRYPTION (Web Crypto, RSA-OAEP SHA-256)
+// ============================================================================
 
-const TEAM_SIZES = [
-  { value: "solo", label: "Just me" },
-  { value: "2-5", label: "2-5" },
-  { value: "6-20", label: "6-20" },
-  { value: "21-50", label: "21-50" },
-  { value: "50+", label: "50+" },
-];
+function b64ToBytes(b64) {
+  const bin = atob(b64);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return bytes;
+}
+function bytesToB64(bytes) {
+  let bin = "";
+  const arr = new Uint8Array(bytes);
+  for (let i = 0; i < arr.length; i++) bin += String.fromCharCode(arr[i]);
+  return btoa(bin);
+}
 
-const AGENT_SCOPES = [
-  { value: "personal", label: "1-to-1", desc: "Just for me" },
-  { value: "shared", label: "1-to-many", desc: "Used across our team" },
-];
+let _pubKeyPromise = null;
+function getPublicKey() {
+  if (!_pubKeyPromise) {
+    _pubKeyPromise = crypto.subtle.importKey(
+      "spki",
+      b64ToBytes(PUBLIC_KEY_SPKI_B64),
+      { name: "RSA-OAEP", hash: "SHA-256" },
+      false,
+      ["encrypt"]
+    );
+  }
+  return _pubKeyPromise;
+}
 
-const EMOJIS = ["🌊", "🌸", "⚡", "🔮", "🎯", "🧭", "🦅", "🌿", "🔥", "⭐", "🌙", "☀️", "🎨", "🧠", "💎", "🚀", "🦊", "🐉", "🌀", "🏔️"];
+// Encrypts a string with the SN public key. Returns base64 ciphertext, or "" for empty input.
+async function encryptField(plaintext) {
+  if (!plaintext) return "";
+  const key = await getPublicKey();
+  const data = new TextEncoder().encode(plaintext);
+  const ct = await crypto.subtle.encrypt({ name: "RSA-OAEP" }, key, data);
+  return bytesToB64(ct);
+}
 
-const INDUSTRIES = [
-  { value: "real_estate", label: "Real Estate" },
-  { value: "home_services", label: "Home Services" },
-  { value: "construction", label: "Construction" },
-  { value: "consulting", label: "Consulting" },
-  { value: "pro_services", label: "Professional Services" },
-  { value: "legal", label: "Legal" },
-  { value: "healthcare", label: "Healthcare" },
-  { value: "finance", label: "Finance" },
-  { value: "saas", label: "SaaS / Tech" },
-  { value: "ecommerce", label: "E-commerce" },
-  { value: "retail", label: "Retail" },
-  { value: "hospitality", label: "Hospitality" },
-  { value: "education", label: "Education" },
-  { value: "creative", label: "Creative / Agency" },
-  { value: "marketing", label: "Marketing / Ad" },
-  { value: "manufacturing", label: "Manufacturing" },
-  { value: "nonprofit", label: "Nonprofit" },
-];
+// ============================================================================
+// HOW-TO CONTENT (modal bodies)
+// ============================================================================
 
-const NEVER_DO_OPTIONS = [
-  "Never use emojis",
-  "Never use jargon",
-  "Never be sarcastic",
-  "Never assume context",
-  "Never give medical or legal advice",
-  "Never share political opinions",
-  "Never use filler phrases",
-  "Never start with 'I'",
-  "Never use em dashes in writing",
-];
-
-const WRITING_SAMPLES = [
-  {
-    id: "sample_1",
-    label: "Direct & operational",
-    text: "Your Q3 numbers are in. Revenue up 18% YoY, churn down 2 points. The story worth telling: retention in the mid-market segment. That's where we doubled down on support and it shows. Deck attached for Monday. Slide 4 is the one you'll want to walk through first.",
+const HOWTO = {
+  tgUserId: {
+    title: "Find your Telegram User ID",
+    steps: [
+      ["Download Telegram if you don't have it yet.", "iPhone/iPad: App Store → search \"Telegram Messenger\". Android: Google Play → search \"Telegram\"."],
+      ["Create or log into your account.", "Use your mobile phone number."],
+      ["Search for @userinfobot.", "Type it into Telegram's search bar."],
+      ["Open UserInfoBot and tap Start.", ""],
+      ["The bot replies with your account details.", ""],
+      ["Copy the number shown as \"Id\" or \"User ID\".", "It's about 10 digits. Paste it into the Telegram User ID field."],
+    ],
   },
-  {
-    id: "sample_2",
-    label: "Warm & conversational",
-    text: "Hey, quick note on the Q3 numbers. Revenue is up 18% year over year, which is great, but the part I'm most excited about is mid-market retention. Churn dropped 2 points and I really think it's because of the support team's work this quarter. I put together a deck for Monday. Let me know if you want to chat through it before the meeting.",
+  botToken: {
+    title: "Create your Telegram bot",
+    steps: [
+      ["In Telegram, search for @BotFather.", "Open the verified BotFather account and tap Start."],
+      ["Send this command: /newbot", ""],
+      ["Enter a display name for the bot.", "This is the name people will see."],
+      ["Enter a username for the bot.", "Must end in \"bot\", be unique across Telegram, and use only letters, numbers, and underscores."],
+      ["BotFather creates the bot and shows an API token.", ""],
+      ["Copy the full API token.", "Paste it into the Telegram Bot Token field."],
+    ],
   },
-  {
-    id: "sample_3",
-    label: "Thorough & analytical",
-    text: "Q3 performance summary: revenue increased 18% year-over-year, driven primarily by mid-market segment growth. Churn decreased by 2 percentage points, with the strongest improvement in accounts that engaged with our new support program. I've prepared a detailed deck covering the segment analysis, the retention driver breakdown, and three recommended actions for Q4. Slide 4 contains the summary if you want to start there.",
+  apiKey: {
+    title: "Get your Anthropic API key",
+    steps: [
+      ["Go to platform.claude.com.", "Sign in or create an account."],
+      ["Fund the account with a $50 minimum.", "Turn on auto-refill (recommended) so your agent never runs out of credits."],
+      ["In the dashboard, go to \"Get API Key\".", ""],
+      ["Name the key [your agent name]-1.", "For example: Jane-1"],
+      ["Click next, then copy the full API key.", "Paste it into the Anthropic API Key field."],
+    ],
   },
-];
-
-const DOMAINS = [
-  { id: "email", label: "Email drafting", icon: "✉", requires: ["gmail"] },
-  { id: "calendar", label: "Calendar & scheduling", icon: "◷", requires: ["gcal"] },
-  { id: "client_followup", label: "Client follow-ups", icon: "↻", requires: ["gmail"] },
-  { id: "lead_qual", label: "Lead qualification & triage", icon: "⌖", requires: [] },
-  { id: "crm", label: "CRM & sales ops", icon: "⎔", requires: ["ghl"] },
-  { id: "customer_support", label: "Customer support", icon: "☎", requires: [] },
-  { id: "meeting_prep", label: "Meeting prep & notes", icon: "◰", requires: ["gcal"] },
-  { id: "project_mgmt", label: "Project management", icon: "◫", requires: ["notion"] },
-  { id: "doc_drafting", label: "Document drafting", icon: "✎", requires: [] },
-  { id: "content", label: "Content creation", icon: "✦", requires: [] },
-  { id: "research", label: "Research & analysis", icon: "⌕", requires: [] },
-  { id: "reporting", label: "Reporting & dashboards", icon: "▦", requires: [] },
-  { id: "social", label: "Social media management", icon: "✶", requires: [] },
-  { id: "knowledge", label: "Knowledge base / FAQ", icon: "❀", requires: [] },
-  { id: "recruiting", label: "Recruiting & outreach", icon: "⌥", requires: [] },
-];
-
-const INTEGRATIONS = [
-  // Communication
-  { id: "gmail", label: "Gmail", category: "comm" },
-  { id: "outlook", label: "Outlook", category: "comm" },
-  { id: "gcal", label: "Google Calendar", category: "comm" },
-  { id: "slack", label: "Slack", category: "comm" },
-  { id: "teams", label: "Microsoft Teams", category: "comm" },
-  { id: "telegram", label: "Telegram", category: "comm" },
-  { id: "discord", label: "Discord", category: "comm" },
-  { id: "twilio", label: "Twilio (SMS)", category: "comm" },
-  // CRM
-  { id: "hubspot", label: "HubSpot", category: "crm" },
-  { id: "salesforce", label: "Salesforce", category: "crm" },
-  { id: "pipedrive", label: "Pipedrive", category: "crm" },
-  { id: "ghl", label: "GoHighLevel", category: "crm" },
-  { id: "followupboss", label: "Follow Up Boss", category: "crm" },
-  // Project / Knowledge
-  { id: "notion", label: "Notion", category: "ops" },
-  { id: "airtable", label: "Airtable", category: "ops" },
-  { id: "asana", label: "Asana", category: "ops" },
-  { id: "clickup", label: "ClickUp", category: "ops" },
-  { id: "monday", label: "Monday.com", category: "ops" },
-  { id: "linear", label: "Linear", category: "ops" },
-  // Sales / Marketing
-  { id: "calendly", label: "Calendly", category: "sales" },
-  { id: "apollo", label: "Apollo", category: "sales" },
-  { id: "mailchimp", label: "Mailchimp", category: "sales" },
-  // Finance / Automation
-  { id: "stripe", label: "Stripe", category: "finance" },
-  { id: "quickbooks", label: "QuickBooks", category: "finance" },
-  { id: "zapier", label: "Zapier", category: "automation" },
-];
-
-// ============================================================================
-// INITIAL STATE
-// ============================================================================
-
-const BUILD_STAGES = [
-  { emoji: "🏢", title: "Setting up your workspace", sub: "Provisioning Railway instance" },
-  { emoji: "🏪", title: (d) => `Loading ${d.businessName}'s profile`, sub: "Importing business context" },
-  { emoji: "🎭", title: (d) => `Writing ${d.agentName}'s personality`, sub: "Generating SOUL.md" },
-  { emoji: "🎙️", title: "Teaching them your voice", sub: "Compiling style directives" },
-  { emoji: "🗺️", title: "Assigning work domains", sub: "Mapping responsibilities" },
-  { emoji: "🔌", title: "Connecting their tools", sub: "Wiring encrypted credentials" },
-  { emoji: "✨", title: "Bringing them online", sub: "First health check" },
-];
-
-const initialData = {
-  email: "",
-  name: "",
-  businessName: "",
-  businessWebsite: "",
-  businessDescription: "",
-  targetAudience: "",
-  teamSize: "",
-  agentScope: "",
-  industries: [],
-  industryOther: "",
-  agentName: "",
-  agentEmoji: "🌊",
-  agentChoosesEmoji: false,
-  agentDescription: "",
-  formal: 50,
-  concise: 70,
-  warm: 60,
-  communicationStyle: "conversational",
-  styleAnchor: "",  // auto-derived from sliders at submit
-  neverDo: [],
-  neverDoCustom: "",
-  _returnToReview: false,
-  workDomains: [],
-  workDomainsOther: "",
-  priorityDomains: [],
-  integrations: {},
-  priorityIntegrations: [],
-  integrationsOther: "",
-  reviewConfirmed: false,
 };
 
 // ============================================================================
-// ROOT COMPONENT
+// SMALL UI PIECES
 // ============================================================================
 
-function App() {
-  const [step, setStep] = useState(1);
-  const [data, setData] = useState(initialData);
-  const [transition, setTransition] = useState(null);
+const inputClass = "w-full px-4 py-3 bg-card border-2 border-ink/25 focus:border-ink focus:outline-none focus:shadow-brut-sm transition-all text-sm placeholder:text-ink/30";
 
-  const update = (patch) => setData(d => ({ ...d, ...patch }));
-
-  const triggerTransition = (label, onComplete, duration = 1200) => {
-    setTransition(label);
-    setTimeout(() => {
-      onComplete();
-      setTimeout(() => setTransition(null), 50);
-    }, duration);
-  };
-
-  const next = () => {
-    if (transition) return;
-
-    // Return-to-review: jump back to Step 6 (the review/build/pricing combined step)
-    if (data._returnToReview && step < 6) {
-      triggerTransition({ title: "Saved.", emoji: "✓", tone: "quick" }, () => {
-        setData(d => ({ ...d, _returnToReview: false }));
-        setStep(6);
-      });
-      return;
-    }
-
-    // Step 6 (Review) is fully internal — owns its own buttons, no footer next.
-    // It calls setStep(7) directly when the consultant confirms.
-    // Step 7 (Welcome/Congrats) is the final page — no transition into it from the footer.
-
-    const transitions = {
-      1: { emoji: "🏢", title: "Creating your workspace", sub: "Provisioning session" },
-      2: { emoji: "🏪", title: `Noted ${data.businessName}`, sub: "Saving business profile" },
-      3: { emoji: "🎭", title: `Shaping ${data.agentName}`, sub: "Building personality model" },
-      4: { emoji: "🗺️", title: "Assigning work domains", sub: "Mapping responsibilities" },
-      5: { emoji: "🔌", title: "Noting your tools", sub: "Recording integrations to set up" },
-    };
-
-    const label = transitions[step];
-
-    triggerTransition(label, () => {
-      setStep(s => Math.min(7, s + 1));
-    });
-  };
-
-  const back = () => setStep(s => Math.max(1, s - 1));
-  const goTo = (n) => setStep(n);
-  const editFromReview = (n) => {
-    setData(d => ({ ...d, _returnToReview: true }));
-    setStep(n);
-  };
-
-  const canContinue = useMemo(() => validateStep(step, data), [step, data]) && !transition;
-
+function Label({ children, required }) {
   return (
-    <div className="min-h-screen flex flex-col">
-      <Header currentStep={step} goTo={goTo} />
-      <main className="flex-1 flex flex-col items-center justify-center py-12 px-6">
-        <div key={step} className={`w-full fade-in ${step >= 6 ? "max-w-5xl" : "max-w-2xl"}`}>
-          {step === 1 && <Step1 data={data} update={update} />}
-          {step === 2 && <Step2 data={data} update={update} />}
-          {step === 3 && <Step3 data={data} update={update} />}
-          {step === 4 && <Step4Domains data={data} update={update} />}
-          {step === 5 && <Step5Tools data={data} update={update} />}
-          {step === 6 && <Step6Review data={data} editFromReview={editFromReview} onSubmit={() => setStep(7)} onBack={() => setStep(5)} />}
-          {step === 7 && <Step7Welcome data={data} />}
-        </div>
-      </main>
-      {step < 6 && <Footer step={step} canContinue={canContinue} next={next} back={back} returnToReview={data._returnToReview} />}
-      {transition && <Transition label={transition} />}
+    <label className="block mono text-xs font-semibold uppercase tracking-widest text-ink/80 mb-2">
+      {children} {required && <span className="text-accent">*</span>}
+    </label>
+  );
+}
+
+function Field({ label, required, hint, howto, onHowto, children }) {
+  return (
+    <div className="mb-6">
+      <div className="flex items-baseline justify-between gap-3 mb-2">
+        <label className="block mono text-xs font-semibold uppercase tracking-widest text-ink/80">
+          {label} {required && <span className="text-accent">*</span>}
+        </label>
+        {howto && (
+          <button
+            type="button"
+            onClick={onHowto}
+            className="mono text-[11px] font-semibold uppercase tracking-widest text-accent hover:text-ink underline decoration-2 underline-offset-2 whitespace-nowrap"
+          >
+            ⓘ {howto}
+          </button>
+        )}
+      </div>
+      {children}
+      {hint && <p className="text-xs text-ink/50 mt-1.5">{hint}</p>}
     </div>
   );
 }
 
-function Transition({ label }) {
-  const isQuick = label.tone === "quick";
-  const isExtended = label.extended;
-  const findings = [
-    "Reading homepage copy",
-    "Indexing services",
-    "Extracting tone of voice",
-    "Pulling team info",
-  ];
-  const [revealedCount, setRevealedCount] = useState(0);
-  useEffect(() => {
-    if (!isExtended) return;
-    const timers = findings.map((_, i) =>
-      setTimeout(() => setRevealedCount(c => c + 1), 350 + i * 350)
-    );
-    return () => timers.forEach(clearTimeout);
-  }, [isExtended]);
-
+function HowToModal({ content, onClose }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center overlay-in" style={{ background: "rgba(247, 243, 234, 0.96)", backdropFilter: "blur(6px)" }}>
-      <div className="text-center px-6 max-w-md">
-        <div className="relative w-24 h-24 mx-auto mb-6">
-          {!isQuick && <div className="absolute inset-0 border-4 border-accent pulse-ring circle"></div>}
-          <div className={`absolute inset-0 flex items-center justify-center text-4xl ${isQuick ? "scale-in" : ""}`}>
-            {isQuick ? (
-              <div className="w-16 h-16 bg-ink border-2 border-ink shadow-brut flex items-center justify-center circle">
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#3EB8C8" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline className="check-draw" points="5 12 10 17 19 8" />
-                </svg>
-              </div>
-            ) : (
-              label.emoji
-            )}
-          </div>
+    <div className="fixed inset-0 z-50 flex items-center justify-center px-4 py-6 overlay-in" style={{ background: "rgba(24,24,24,0.5)" }}>
+      <div className="bg-card border-2 border-ink shadow-brut-lg max-w-lg w-full max-h-full flex flex-col">
+        <div className="flex items-center justify-between p-5 border-b-2 border-ink">
+          <h3 className="text-lg">{content.title}</h3>
+          <button onClick={onClose} className="w-8 h-8 hover:bg-ink/5 flex items-center justify-center text-ink/60 font-black" aria-label="Close">✕</button>
         </div>
-        <div className="label-slide">
-          {label.sub && (
-            <div className="mono text-xs text-ink/60 uppercase tracking-widest font-semibold mb-2">{label.sub}</div>
-          )}
-          <div className="display font-black text-xl uppercase text-ink flex items-center justify-center gap-1">
-            {label.title}
-            {!isQuick && (
-              <span className="inline-flex items-center ml-1">
-                <span className="w-1.5 h-1.5 bg-ink dot-bounce mx-0.5 circle" style={{ animationDelay: "0s" }}></span>
-                <span className="w-1.5 h-1.5 bg-ink dot-bounce mx-0.5 circle" style={{ animationDelay: "0.2s" }}></span>
-                <span className="w-1.5 h-1.5 bg-ink dot-bounce mx-0.5 circle" style={{ animationDelay: "0.4s" }}></span>
-              </span>
-            )}
-          </div>
-          {isExtended && (
-            <div className="mt-6 text-left space-y-1.5 min-h-[120px]">
-              {findings.slice(0, revealedCount).map((f, i) => (
-                <div key={i} className="flex items-center gap-2 text-sm text-ink/80 fade-in">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3EB8C8" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="5 12 10 17 19 8" />
-                  </svg>
-                  <span>{f}</span>
+        <div className="overflow-y-auto p-6">
+          <ol className="space-y-4">
+            {content.steps.map((s, i) => (
+              <li key={i} className="flex gap-3">
+                <div className="w-7 h-7 bg-ink text-accent display font-black flex items-center justify-center flex-shrink-0 text-sm circle">{i + 1}</div>
+                <div className="flex-1 pt-0.5">
+                  <div className="text-sm font-semibold text-ink">{s[0]}</div>
+                  {s[1] && <div className="text-sm text-ink/65 mt-0.5 leading-relaxed">{s[1]}</div>}
                 </div>
-              ))}
-            </div>
-          )}
+              </li>
+            ))}
+          </ol>
+        </div>
+        <div className="border-t-2 border-ink p-4 bg-paper">
+          <button onClick={onClose} className="w-full display font-black text-xs uppercase tracking-widest bg-ink text-accent border-2 border-ink px-6 py-3 hover:bg-ink/90 transition-all">
+            Got it
+          </button>
         </div>
       </div>
     </div>
@@ -446,1473 +232,284 @@ function Transition({ label }) {
 }
 
 // ============================================================================
-// VALIDATION
+// APP
 // ============================================================================
 
-function validateStep(step, d) {
-  switch (step) {
-    case 1: return d.email.includes("@") && d.name.length >= 2;
-    case 2: return d.businessName.length >= 2 && d.businessWebsite.length >= 4 && d.businessDescription.length >= 20 && d.teamSize && d.agentScope;
-    case 3: return d.agentName.length >= 2 && (d.agentEmoji || d.agentChoosesEmoji) && d.agentDescription.length >= 5 && d.communicationStyle;
-    case 4: return d.workDomains.length >= 1 && d.priorityDomains.length === Math.min(3, d.workDomains.length);
-    case 5: {
-      // Validation only counts CORE (non-CRM) integrations — CRMs are add-ons that don't need ranking
-      const coreIds = Object.keys(d.integrations).filter(id => {
-        const i = INTEGRATIONS.find(x => x.id === id);
-        return i && i.category !== "crm";
+const initialData = {
+  agentType: "",
+  agentTypeOther: "",
+  clientName: "",
+  companyName: "",
+  websites: "",
+  telegramUserId: "",
+  agentName: "",
+  botToken: "",
+  apiKey: "",
+  commStyle: "",
+  businessContext: "",
+};
+
+function App() {
+  const [data, setData] = useState(initialData);
+  const [modal, setModal] = useState(null);
+  const [phase, setPhase] = useState("form"); // form | submitting | done | error
+  const [errorMsg, setErrorMsg] = useState("");
+  const [showBot, setShowBot] = useState(false);
+  const [showKey, setShowKey] = useState(false);
+
+  const update = (patch) => setData(d => ({ ...d, ...patch }));
+
+  const valid = useMemo(() => {
+    const typeOk = data.agentType && (data.agentType !== "Other" || data.agentTypeOther.trim().length > 1);
+    return (
+      typeOk &&
+      data.clientName.trim().length >= 2 &&
+      data.companyName.trim().length >= 2 &&
+      data.websites.trim().length >= 3 &&
+      data.telegramUserId.trim().length >= 3 &&
+      data.agentName.trim().length >= 2 &&
+      data.botToken.trim().length >= 10 &&
+      data.apiKey.trim().length >= 10
+    );
+  }, [data]);
+
+  const slug = (s) => (s || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+
+  const submit = async () => {
+    if (!valid || phase === "submitting") return;
+    setPhase("submitting");
+    setErrorMsg("");
+    try {
+      // Encrypt the three sensitive fields in the browser before anything leaves the page.
+      const [encTgId, encBot, encKey] = await Promise.all([
+        encryptField(data.telegramUserId.trim()),
+        encryptField(data.botToken.trim()),
+        encryptField(data.apiKey.trim()),
+      ]);
+
+      const today = new Date().toISOString().slice(0, 10).replace(/-/g, "");
+      const filename = `SNForge-${slug(data.companyName) || "client"}_${slug(data.agentName) || "agent"}_setup_${today}.txt`;
+
+      const payload = {
+        kind: "agent_setup_v1",
+        filename,
+        agentType: data.agentType === "Other" ? data.agentTypeOther.trim() : data.agentType,
+        clientName: data.clientName.trim(),
+        companyName: data.companyName.trim(),
+        websites: data.websites.trim(),
+        agentName: data.agentName.trim(),
+        commStyle: data.commStyle.trim(),
+        businessContext: data.businessContext.trim(),
+        // encrypted (base64 RSA-OAEP ciphertext)
+        enc_telegramUserId: encTgId,
+        enc_botToken: encBot,
+        enc_apiKey: encKey,
+        capturedAt: new Date().toString(),
+      };
+
+      // text/plain avoids a CORS preflight; Apps Script parses the body as JSON.
+      await fetch(BACKEND_URL, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify(payload),
       });
-      if (coreIds.length < 1) return false;
-      const requiredPriority = Math.min(3, coreIds.length);
-      const corePriorityCount = d.priorityIntegrations.filter(id => coreIds.includes(id)).length;
-      return corePriorityCount === requiredPriority;
+
+      if (typeof confetti === "function") {
+        confetti({ particleCount: 70, spread: 75, startVelocity: 45, gravity: 0.9, ticks: 200, origin: { x: 0.5, y: 0.5 }, colors: ["#3EB8C8", "#181818", "#BBB469", "#F7F3EA"] });
+      }
+      setPhase("done");
+    } catch (e) {
+      setErrorMsg(String(e));
+      setPhase("error");
     }
-    // Step 6 is the Review/Confirm page (internal own-button, no footer)
-    // Step 7 (Welcome/Congrats) is the final page — no validation, no footer.
-    default: return true;
+  };
+
+  if (phase === "done") {
+    return <ThankYou data={data} />;
   }
+
+  return (
+    <div className="min-h-screen flex flex-col">
+      <Header />
+      <main className="flex-1 w-full max-w-2xl mx-auto px-6 py-10 md:py-14">
+        <div className="mb-10">
+          <div className="mono text-xs text-accent uppercase tracking-widest font-semibold mb-3 flex items-center gap-2">
+            <span className="inline-block w-6 h-px bg-accent"></span>
+            Agent Setup
+          </div>
+          <h1 className="text-3xl md:text-5xl mb-4">Let's build your agent.</h1>
+          <p className="text-ink/75 text-base md:text-lg leading-relaxed">
+            Fill this out and our team gets everything needed to deploy your agent. It takes about 10 minutes. A few fields need a key or token — each has a step-by-step guide right next to it. Your keys are encrypted the moment you enter them.
+          </p>
+        </div>
+
+        {/* Agent type */}
+        <Field label="Agent type" required>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            {AGENT_TYPES.map(t => (
+              <button
+                key={t}
+                type="button"
+                onClick={() => update({ agentType: t })}
+                className={`chip text-sm px-3 py-3 border-2 transition-all font-medium ${
+                  data.agentType === t ? "bg-ink text-paper border-ink" : "bg-card border-ink/25 hover:border-ink hover:bg-accentSoft"
+                }`}
+              >
+                {t}
+              </button>
+            ))}
+          </div>
+          {data.agentType === "Other" && (
+            <input
+              type="text"
+              value={data.agentTypeOther}
+              onChange={e => update({ agentTypeOther: e.target.value })}
+              placeholder="Describe the agent type you need..."
+              className={inputClass + " mt-2"}
+              autoFocus
+            />
+          )}
+        </Field>
+
+        {/* Client name */}
+        <Field label="Your name" required>
+          <input type="text" value={data.clientName} onChange={e => update({ clientName: e.target.value })} placeholder="Jane Smith" className={inputClass} />
+        </Field>
+
+        {/* Company */}
+        <Field label="Company name" required>
+          <input type="text" value={data.companyName} onChange={e => update({ companyName: e.target.value })} placeholder="Acme Realty" className={inputClass} />
+        </Field>
+
+        {/* Websites */}
+        <Field label="Company website" required hint="If you have more than one, separate them with commas.">
+          <input type="text" value={data.websites} onChange={e => update({ websites: e.target.value })} placeholder="acme.com, acme-listings.com" className={inputClass} />
+        </Field>
+
+        {/* Telegram User ID */}
+        <Field label="Your Telegram User ID" required howto="How to find this" onHowto={() => setModal("tgUserId")} hint="A ~10-digit number that tells your agent who you are.">
+          <input type="text" value={data.telegramUserId} onChange={e => update({ telegramUserId: e.target.value })} placeholder="123456789" className={inputClass} />
+        </Field>
+
+        <div className="my-8 border-t-2 border-ink/10"></div>
+
+        {/* Agent name */}
+        <Field label="Your agent's name" required hint="What you'll call your agent. Anything you like.">
+          <input type="text" value={data.agentName} onChange={e => update({ agentName: e.target.value })} placeholder="Atlas" className={inputClass} />
+        </Field>
+
+        {/* Bot token */}
+        <Field label="Telegram Bot Token" required howto="How to create your bot" onHowto={() => setModal("botToken")} hint="🔒 Encrypted before it leaves this page.">
+          <div className="relative">
+            <input
+              type={showBot ? "text" : "password"}
+              value={data.botToken}
+              onChange={e => update({ botToken: e.target.value })}
+              placeholder="123456789:AAExampleTokenFromBotFather"
+              className={inputClass + " pr-16"}
+            />
+            <button type="button" onClick={() => setShowBot(s => !s)} className="absolute right-3 top-1/2 -translate-y-1/2 mono text-[11px] uppercase tracking-widest text-ink/50 hover:text-ink">
+              {showBot ? "Hide" : "Show"}
+            </button>
+          </div>
+        </Field>
+
+        {/* API key */}
+        <Field label="Anthropic API Key" required howto="How to get your key" onHowto={() => setModal("apiKey")} hint="🔒 Encrypted before it leaves this page.">
+          <div className="relative">
+            <input
+              type={showKey ? "text" : "password"}
+              value={data.apiKey}
+              onChange={e => update({ apiKey: e.target.value })}
+              placeholder="sk-ant-api03-..."
+              className={inputClass + " pr-16"}
+            />
+            <button type="button" onClick={() => setShowKey(s => !s)} className="absolute right-3 top-1/2 -translate-y-1/2 mono text-[11px] uppercase tracking-widest text-ink/50 hover:text-ink">
+              {showKey ? "Hide" : "Show"}
+            </button>
+          </div>
+        </Field>
+
+        <div className="my-8 border-t-2 border-ink/10"></div>
+
+        {/* Comm style */}
+        <Field label="Preferred communication style" hint="How should your agent talk to you? Formal or casual, short or detailed, any quirks — describe it in your words.">
+          <textarea value={data.commStyle} onChange={e => update({ commStyle: e.target.value })} rows={3} placeholder="Friendly and to the point. Skip the fluff. Use bullet points for anything with more than two items..." className={inputClass + " resize-none"} />
+        </Field>
+
+        {/* Business context */}
+        <Field label="Anything else we should know" hint="Business details, use cases, ideas, daily tasks, current projects — anything that gives your agent useful context.">
+          <textarea value={data.businessContext} onChange={e => update({ businessContext: e.target.value })} rows={5} placeholder="We're a boutique real estate team. Day to day we juggle showings, follow-ups, and paperwork. I'd love the agent to draft my follow-up emails and keep my calendar sane..." className={inputClass + " resize-none"} />
+        </Field>
+
+        {/* Submit */}
+        <div className="mt-10 pt-6 border-t-2 border-ink">
+          {phase === "error" && (
+            <div className="mb-4 p-4 border-2 border-ink bg-accentSoft text-sm">
+              <div className="font-semibold mb-1">Something went wrong submitting.</div>
+              <div className="text-ink/70">Please try again in a moment. If it keeps happening, email john@thestrategyninjas.com.</div>
+            </div>
+          )}
+          <button
+            onClick={submit}
+            disabled={!valid || phase === "submitting"}
+            className="w-full display font-black text-sm uppercase tracking-widest bg-accent text-ink border-2 border-ink px-6 py-4 shadow-brut hover:shadow-brut-hover hover:-translate-x-0.5 hover:-translate-y-0.5 active:translate-x-0 active:translate-y-0 active:shadow-brut-sm disabled:bg-ink/10 disabled:text-ink/30 disabled:shadow-none disabled:cursor-not-allowed disabled:hover:translate-x-0 disabled:hover:translate-y-0 transition-all flex items-center justify-center gap-3"
+          >
+            {phase === "submitting" ? (
+              <>
+                <svg className="spin-slow circle" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#181818" strokeWidth="3" strokeLinecap="round"><circle cx="12" cy="12" r="9" strokeDasharray="40 60" /></svg>
+                Submitting...
+              </>
+            ) : "Submit my setup →"}
+          </button>
+          <p className="text-xs text-ink/50 text-center mt-3">
+            🔒 Your Telegram ID, bot token, and API key are encrypted in your browser before they're sent. Only the Strategy Ninjas team can read them.
+          </p>
+        </div>
+      </main>
+
+      {modal && <HowToModal content={HOWTO[modal]} onClose={() => setModal(null)} />}
+    </div>
+  );
 }
 
-// ============================================================================
-// HEADER & FOOTER
-// ============================================================================
-
-function Header({ currentStep, goTo }) {
+function Header() {
   return (
-    <header className="border-b-2 border-ink bg-paper">
-      <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between gap-4">
-        <div className="flex items-center gap-3 min-w-0">
-          {/* Strategy Ninjas full logo lockup — transparent PNG, teal-on-cream */}
-          <img src="sn-logo.png" alt="Strategy Ninjas" className="h-9 w-auto block flex-shrink-0" />
-          <div className="min-w-0 hidden sm:block">
-            <div className="mono text-[10px] text-ink/60 uppercase tracking-widest font-semibold">Agent Discovery</div>
-          </div>
-        </div>
-        <div className="hidden md:flex items-center gap-1.5">
-          {STEPS.map(s => (
-            <button
-              key={s.n}
-              onClick={() => s.n < currentStep && goTo(s.n)}
-              disabled={s.n >= currentStep}
-              className={`h-2 transition-all ${
-                s.n === currentStep ? "bg-accent w-8 border border-ink" :
-                s.n < currentStep ? "bg-ink w-2 hover:w-5 cursor-pointer" :
-                "bg-ink/15 w-2"
-              }`}
-              aria-label={`Step ${s.n}: ${s.label}`}
-            />
-          ))}
-        </div>
-        <div className="mono text-xs text-ink/70 uppercase tracking-widest whitespace-nowrap flex-shrink-0 font-semibold">
-          Step {currentStep} / {STEPS.length}
-        </div>
+    <header className="border-b-2 border-ink bg-paper sticky top-0 z-40">
+      <div className="max-w-2xl mx-auto px-6 py-4 flex items-center gap-3">
+        <img src="sn-logo.png" alt="Strategy Ninjas" className="h-9 w-auto block flex-shrink-0" />
+        <div className="mono text-[10px] text-ink/60 uppercase tracking-widest font-semibold hidden sm:block">Agent Setup</div>
       </div>
     </header>
   );
 }
 
-function Footer({ step, canContinue, next, back, returnToReview }) {
-  const label =
-    returnToReview ? "Save & return to review →" :
-    step === 5 ? "Review & build →" :
-    "Continue →";
-
+function ThankYou({ data }) {
   return (
-    <footer className="border-t-2 border-ink bg-paper">
-      <div className={`max-w-2xl mx-auto px-6 py-6 flex items-center gap-4 ${step === 1 ? "justify-end" : "justify-between"}`}>
-        {step > 1 && (
-          <button
-            onClick={back}
-            className="mono text-xs uppercase tracking-widest font-semibold text-ink/70 hover:text-ink transition-colors"
-          >
-            ← Back
-          </button>
-        )}
-        <button
-          onClick={next}
-          disabled={!canContinue}
-          className="display font-black text-xs uppercase tracking-widest bg-accent text-ink border-2 border-ink px-6 py-3 shadow-brut hover:shadow-brut-hover hover:-translate-x-0.5 hover:-translate-y-0.5 active:translate-x-0 active:translate-y-0 active:shadow-brut-sm disabled:bg-ink/10 disabled:text-ink/30 disabled:shadow-none disabled:cursor-not-allowed disabled:hover:translate-x-0 disabled:hover:translate-y-0 transition-all"
-        >
-          {label}
-        </button>
-      </div>
-    </footer>
-  );
-}
-
-// ============================================================================
-// STEP SHELL
-// ============================================================================
-
-function StepShell({ eyebrow, title, subtitle, children }) {
-  return (
-    <div>
-      <div className="mono text-xs text-ink/60 uppercase tracking-widest font-semibold mb-3 flex items-center gap-2">
-        <span className="inline-block w-6 h-px bg-accent"></span>
-        {eyebrow}
-      </div>
-      <h1 className="font-black text-3xl md:text-5xl mb-4 text-ink">{title}</h1>
-      {subtitle && <p className="text-ink/75 text-base md:text-lg mb-8 leading-relaxed max-w-2xl">{subtitle}</p>}
-      <div className="space-y-5">{children}</div>
-    </div>
-  );
-}
-
-function Field({ label, hint, children, required }) {
-  return (
-    <div>
-      <label className="block mono text-xs font-semibold uppercase tracking-widest text-ink/80 mb-2">
-        {label} {required && <span className="text-accent">*</span>}
-      </label>
-      {children}
-      {hint && <p className="text-xs text-ink/60 mt-1.5">{hint}</p>}
-    </div>
-  );
-}
-
-const inputClass = "w-full px-4 py-3 text-sm bg-card border-2 border-ink/20 focus:border-accent focus:outline-none focus:bg-card transition-colors placeholder:text-ink/30";
-
-// ============================================================================
-// STEP 1 — ACCOUNT
-// ============================================================================
-
-function Step1({ data, update }) {
-  return (
-    <StepShell
-      eyebrow="Welcome"
-      title="Welcome to your agent discovery."
-      subtitle="Over the next 30 minutes we'll capture everything we need to design and build your AI Chief of Staff. By the end, you'll see exactly what we're building and what it costs."
-    >
-      <Field label="Your name" required>
-        <input
-          type="text"
-          value={data.name}
-          onChange={e => update({ name: e.target.value })}
-          placeholder="Jane Smith"
-          className={inputClass}
-        />
-      </Field>
-      <Field label="Email" hint="We'll send your build summary and next steps here." required>
-        <input
-          type="email"
-          value={data.email}
-          onChange={e => update({ email: e.target.value })}
-          placeholder="jane@acme.com"
-          className={inputClass}
-        />
-      </Field>
-    </StepShell>
-  );
-}
-
-// ============================================================================
-// STEP 2 — BUSINESS
-// ============================================================================
-
-function Step2({ data, update }) {
-  return (
-    <StepShell
-      eyebrow="About your business"
-      title="Tell us who you serve."
-      subtitle="Your agent will use this to speak your language. The more specific, the better it'll be."
-    >
-      <Field label="Business name" required>
-        <input
-          type="text"
-          value={data.businessName}
-          onChange={e => update({ businessName: e.target.value })}
-          placeholder="Acme Consulting"
-          className={inputClass}
-        />
-      </Field>
-      <Field label="Website" hint="Our team uses this during the build to learn your tone, services, and team." required>
-        <div className="relative">
-          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-ink/40 mono text-sm">🔍</span>
-          <input
-            type="text"
-            value={data.businessWebsite}
-            onChange={e => update({ businessWebsite: e.target.value })}
-            placeholder="acme.com"
-            className={inputClass + " pl-11"}
-          />
-        </div>
-      </Field>
-      <Field label="What does your business do?" hint={`${data.businessDescription.length}/20 characters minimum`} required>
-        <textarea
-          value={data.businessDescription}
-          onChange={e => update({ businessDescription: e.target.value })}
-          placeholder="We help mid-market B2B companies modernize their operations with AI-assisted workflows..."
-          rows={3}
-          className={inputClass + " resize-none"}
-        />
-      </Field>
-      <Field label="Who do you serve?">
-        <input
-          type="text"
-          value={data.targetAudience}
-          onChange={e => update({ targetAudience: e.target.value })}
-          placeholder="VP of Ops at 50-500 person companies"
-          className={inputClass}
-        />
-      </Field>
-      <Field label="Industries" hint="Optional. Pick any that apply.">
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-          {INDUSTRIES.map(i => {
-            const on = data.industries.includes(i.value);
-            return (
-              <button
-                key={i.value}
-                onClick={() => {
-                  const next = on
-                    ? data.industries.filter(x => x !== i.value)
-                    : [...data.industries, i.value];
-                  update({ industries: next });
-                }}
-                className={`chip text-sm px-3 py-2 rounded-md border transition-all ${
-                  on
-                    ? "bg-ink text-paper border-2 border-ink"
-                    : "bg-card border-2 border-ink/25 hover:border-ink hover:bg-accentSoft"
-                }`}
-              >
-                {on && <span className="mr-1">✓</span>}{i.label}
-              </button>
-            );
-          })}
-        </div>
-      </Field>
-      <Field label="Other (anything not listed)">
-        <input
-          type="text"
-          value={data.industryOther}
-          onChange={e => update({ industryOther: e.target.value })}
-          placeholder="e.g. logistics, biotech, defense..."
-          className={inputClass}
-        />
-      </Field>
-
-      <div className="pt-4 border-t border-ink/15">
-        <div className="mono text-xs text-ink/60 uppercase tracking-widest font-semibold mb-3">Team context</div>
-        <Field label="How many people are on your team?" required>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
-            {TEAM_SIZES.map(t => (
-              <button
-                key={t.value}
-                onClick={() => update({ teamSize: t.value })}
-                className={`chip text-sm px-3 py-2 border-2 transition-all ${
-                  data.teamSize === t.value
-                    ? "bg-ink text-paper border-ink"
-                    : "bg-card border-ink/25 hover:border-ink hover:bg-accentSoft"
-                }`}
-              >
-                {t.label}
-              </button>
-            ))}
-          </div>
-        </Field>
-        <Field label="Will this agent be for one person or the whole team?" hint="One-to-one means the agent is yours alone. One-to-many means your team uses it." required>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-            {AGENT_SCOPES.map(s => (
-              <button
-                key={s.value}
-                onClick={() => update({ agentScope: s.value })}
-                className={`chip text-left p-3 border-2 transition-all ${
-                  data.agentScope === s.value
-                    ? "bg-ink text-paper border-ink"
-                    : "bg-card border-ink/25 hover:border-ink hover:bg-accentSoft"
-                }`}
-              >
-                <div className="display font-black text-sm uppercase tracking-tight">{s.label}</div>
-                <div className={`text-xs mt-0.5 ${data.agentScope === s.value ? "text-paper/70" : "text-ink/60"}`}>{s.desc}</div>
-              </button>
-            ))}
-          </div>
-        </Field>
-      </div>
-    </StepShell>
-  );
-}
-
-// ============================================================================
-// STEP 3 — IDENTITY
-// ============================================================================
-
-function Step3({ data, update }) {
-  const preview = getPersonalityPreview(data.formal, data.concise, data.warm);
-
-  return (
-    <StepShell
-      eyebrow="Agent identity"
-      title="Who is your agent?"
-      subtitle="Give them a name, a face, and a personality. You can change all of this later."
-    >
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-        <div className="md:col-span-2">
-          <Field label="Agent name" hint="2-30 characters. Letters, numbers, spaces." required>
-            <input
-              type="text"
-              value={data.agentName}
-              onChange={e => update({ agentName: e.target.value })}
-              placeholder="Atlas"
-              maxLength={30}
-              className={inputClass}
-            />
-          </Field>
-        </div>
-        <div>
-          <Field label="Emoji" required>
-            <div className="flex items-center gap-3">
-              <div className={`w-12 h-12 rounded-md flex items-center justify-center text-2xl flex-shrink-0 ${
-                data.agentChoosesEmoji ? "bg-ink/5 text-ink/40" : "bg-accentSoft"
-              }`}>
-                {data.agentChoosesEmoji ? "✨" : (data.agentEmoji || "?")}
-              </div>
-              <div className="flex-1 text-xs text-ink/60">
-                {data.agentChoosesEmoji
-                  ? `${data.agentName || "Your agent"} will pick on launch.`
-                  : "Tap to choose, type your own, or let your agent choose."}
-              </div>
-            </div>
-          </Field>
-        </div>
-      </div>
-      <Field
-        label="Describe your agent in one sentence"
-        hint={`Goes into their system prompt. ${data.agentDescription.length}/5 minimum.`}
-        required
-      >
-        <input
-          type="text"
-          value={data.agentDescription}
-          onChange={e => update({ agentDescription: e.target.value })}
-          placeholder="A sharp, warm operations partner who keeps nothing falling through the cracks."
-          className={inputClass}
-        />
-      </Field>
-      <div className="pt-4 border-t border-ink/15">
-        <div className="mono text-xs text-ink/60 uppercase tracking-widest mb-3">Emoji</div>
-        <div className="flex flex-wrap gap-1.5 mb-3">
-          {EMOJIS.map(e => (
-            <button
-              key={e}
-              onClick={() => update({ agentEmoji: e, agentChoosesEmoji: false })}
-              className={`w-10 h-10 rounded-md text-xl transition-all ${
-                data.agentEmoji === e && !data.agentChoosesEmoji
-                  ? "bg-accentSoft ring-2 ring-accent"
-                  : "bg-card border border-ink/15 hover:border-ink"
-              }`}
-            >
-              {e}
-            </button>
-          ))}
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <div>
-            <label className="block text-xs text-ink/60 mb-1.5">Or type your own</label>
-            <input
-              type="text"
-              value={data.agentChoosesEmoji ? "" : (EMOJIS.includes(data.agentEmoji) ? "" : data.agentEmoji)}
-              onChange={e => {
-                const v = [...e.target.value].slice(0, 2).join("");
-                update({ agentEmoji: v, agentChoosesEmoji: false });
-              }}
-              placeholder="🎯  (paste any emoji)"
-              className={inputClass}
-              maxLength={4}
-            />
-          </div>
-          <div>
-            <label className="block text-xs text-ink/60 mb-1.5">Or let them choose</label>
-            <button
-              onClick={() => update({ agentChoosesEmoji: !data.agentChoosesEmoji })}
-              className={`w-full text-sm px-4 py-2.5 rounded-md border transition-all ${
-                data.agentChoosesEmoji
-                  ? "bg-ink text-paper border-2 border-ink"
-                  : "bg-card border-2 border-ink/25 hover:border-ink hover:bg-accentSoft"
-              }`}
-            >
-              {data.agentChoosesEmoji ? "✓ Agent picks on launch" : "✨ Let my agent choose"}
-            </button>
-          </div>
-        </div>
-      </div>
-      <div className="pt-4 border-t border-ink/15">
-        <div className="mono text-xs text-ink/60 uppercase tracking-widest mb-4">Personality</div>
-        <Slider label="Formal" rightLabel="Casual" value={data.formal} onChange={v => update({ formal: v })} />
-        <Slider label="Concise" rightLabel="Thorough" value={data.concise} onChange={v => update({ concise: v })} />
-        <Slider label="Reserved" rightLabel="Warm" value={data.warm} onChange={v => update({ warm: v })} />
-        <div className="mt-6 bg-card border-l-4 border-accent border-2 border-l-accent p-5 shadow-brut-sm">
-          <div className="mono text-xs text-ink/70 uppercase tracking-widest font-semibold mb-2 flex items-center gap-2">
-            <span className="inline-block w-2 h-2 bg-accent"></span>
-            Sample response
-          </div>
-          <p className="serif text-base text-ink leading-relaxed italic">"{preview}"</p>
-        </div>
-      </div>
-
-      <div className="pt-4 border-t border-ink/15">
-        <div className="mono text-xs text-ink/60 uppercase tracking-widest mb-3">Communication style</div>
-        <Field label="How should your agent format responses?" required>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-            {[
-              { v: "bullet_points", l: "Bullet points" },
-              { v: "paragraphs", l: "Paragraphs" },
-              { v: "conversational", l: "Conversational" },
-              { v: "structured", l: "Structured" },
-            ].map(s => (
-              <button
-                key={s.v}
-                onClick={() => update({ communicationStyle: s.v })}
-                className={`chip text-sm px-3 py-2 rounded-md border transition-all ${
-                  data.communicationStyle === s.v
-                    ? "bg-ink text-paper border-2 border-ink"
-                    : "bg-card border-2 border-ink/25 hover:border-ink hover:bg-accentSoft"
-                }`}
-              >
-                {s.l}
-              </button>
-            ))}
-          </div>
-        </Field>
-        <Field label="What should your agent never do?" hint="Pick any that apply. Every rule becomes an explicit instruction.">
-          <div className="flex flex-wrap gap-2">
-            {NEVER_DO_OPTIONS.map(opt => {
-              const on = data.neverDo.includes(opt);
-              return (
-                <button
-                  key={opt}
-                  onClick={() => {
-                    const next = on
-                      ? data.neverDo.filter(x => x !== opt)
-                      : [...data.neverDo, opt];
-                    update({ neverDo: next });
-                  }}
-                  className={`chip text-sm px-3 py-1.5 rounded-full border transition-all ${
-                    on
-                      ? "bg-ink text-paper border-2 border-ink"
-                      : "bg-card border-2 border-ink/25 hover:border-ink hover:bg-accentSoft text-ink/80"
-                  }`}
-                >
-                  {on && <span className="mr-1">✓</span>}{opt}
-                </button>
-              );
-            })}
-          </div>
-        </Field>
-        <Field label="Anything else?" hint={`${data.neverDoCustom.length}/200`}>
-          <input
-            type="text"
-            value={data.neverDoCustom}
-            onChange={e => update({ neverDoCustom: e.target.value.slice(0, 200) })}
-            placeholder="e.g. never recommend competitors by name"
-            maxLength={200}
-            className={inputClass}
-          />
-        </Field>
-      </div>
-    </StepShell>
-  );
-}
-
-function Slider({ label, rightLabel, value, onChange }) {
-  return (
-    <div className="mb-5">
-      <div className="flex justify-between text-sm mb-2">
-        <span className={value < 50 ? "font-semibold text-ink" : "text-ink/60"}>{label}</span>
-        <span className="mono text-xs text-ink/40">{value}</span>
-        <span className={value >= 50 ? "font-semibold text-ink" : "text-ink/60"}>{rightLabel}</span>
-      </div>
-      <input
-        type="range"
-        min={0}
-        max={100}
-        value={value}
-        onChange={e => onChange(parseInt(e.target.value))}
-        className="w-full"
-      />
-    </div>
-  );
-}
-
-// Personality preview: each slider independently controls a fragment.
-// 5 bands × 3 sliders = 15 fragments. Small slider movements toggle visible changes.
-const FRAGMENTS = {
-  // Warm slider — opening / greeting tone
-  warm: [
-    "",                                           // 0-20: cold cold
-    "Q3 results attached.",                        // 21-40: brief acknowledgment
-    "Quick note on Q3.",                           // 41-60: balanced
-    "Hey, Q3 numbers are in.",                     // 61-80: warm
-    "Hey! Q3 numbers came in and they look good.", // 81-100: very warm
-  ],
-  // Concise slider — body length
-  concise: [
-    "Rev +18%, churn -2pts.",
-    "Revenue +18% YoY. Churn down 2 points.",
-    "Revenue grew 18% year over year, and churn dropped 2 points, mostly from mid-market.",
-    "Revenue grew 18% year over year, with mid-market driving most of it. Churn dropped 2 points across the same segment.",
-    "Revenue grew 18% year over year. The strongest growth came from mid-market accounts. Churn decreased 2 percentage points, with the biggest improvement among accounts that engaged with our new support program. Three drivers stood out: onboarding work, the renewals process, and feature adoption.",
-  ],
-  // Formal slider — sign-off tone (higher = more casual)
-  formal: [
-    "Full breakdown in the attached report.",
-    "Deck attached for Monday.",
-    "Deck attached for Monday's review.",
-    "Threw together a deck for Monday. Slide 4 has the punchline.",
-    "Quick deck attached, slide 4 has the punchline. 🎯",
-  ],
-};
-
-function band(value) {
-  if (value < 20) return 0;
-  if (value < 40) return 1;
-  if (value < 60) return 2;
-  if (value < 80) return 3;
-  return 4;
-}
-
-function getPersonalityPreview(formal, concise, warm) {
-  const greeting = FRAGMENTS.warm[band(warm)];
-  const body = FRAGMENTS.concise[band(concise)];
-  const closing = FRAGMENTS.formal[band(formal)];
-  return [greeting, body, closing].filter(Boolean).join(" ");
-}
-
-// ============================================================================
-// STEP 4 — DOMAINS
-// ============================================================================
-
-function Step4Domains({ data, update }) {
-  const toggle = (id) => {
-    const selected = data.workDomains.includes(id);
-    const nextDomains = selected
-      ? data.workDomains.filter(x => x !== id)
-      : [...data.workDomains, id];
-    const nextPriority = data.priorityDomains.filter(x => nextDomains.includes(x));
-    update({ workDomains: nextDomains, priorityDomains: nextPriority });
-  };
-
-  const togglePriority = (id) => {
-    if (!data.workDomains.includes(id)) return;
-    const inPriority = data.priorityDomains.includes(id);
-    if (inPriority) {
-      update({ priorityDomains: data.priorityDomains.filter(x => x !== id) });
-    } else {
-      if (data.priorityDomains.length >= 3) return;
-      update({ priorityDomains: [...data.priorityDomains, id] });
-    }
-  };
-
-  const maxPriority = Math.min(3, data.workDomains.length);
-
-  return (
-    <StepShell
-      eyebrow="Work domains"
-      title="What's your agent for?"
-      subtitle="Pick everything that applies. Then rank your top 3."
-    >
-      <div className="grid grid-cols-2 gap-2">
-        {DOMAINS.map(d => {
-          const on = data.workDomains.includes(d.id);
-          return (
-            <button
-              key={d.id}
-              onClick={() => toggle(d.id)}
-              className={`flex items-center gap-3 p-3 rounded-md border text-left transition-all ${
-                on ? "bg-accentSoft border-ink" : "bg-card border-2 border-ink/25 hover:border-ink hover:bg-accentSoft"
-              }`}
-            >
-              <div className={`w-8 h-8 rounded flex items-center justify-center mono text-sm ${
-                on ? "bg-ink text-paper" : "bg-ink/5"
-              }`}>
-                {d.icon}
-              </div>
-              <span className="text-sm font-medium">{d.label}</span>
-            </button>
-          );
-        })}
-      </div>
-      {data.workDomains.length > 0 && (
-        <div className="pt-6 border-t border-ink/15">
-          <div className="mono text-xs text-ink/60 uppercase tracking-widest mb-1">Priority ranking</div>
-          <p className="text-sm text-ink/70 mb-4">
-            {data.workDomains.length === 1 && "Your #1 priority."}
-            {data.workDomains.length === 2 && "Rank both in order — tap #1 first, then #2."}
-            {data.workDomains.length >= 3 && `Pick your top ${maxPriority} in order — tap #1 first. Tap again to remove.`}
-            {" "}
-            <span className="mono text-xs text-ink/40">
-              ({data.priorityDomains.length} of {maxPriority} selected)
-            </span>
+    <div className="min-h-screen flex flex-col">
+      <Header />
+      <main className="flex-1 flex items-center justify-center px-6 py-16">
+        <div className="max-w-lg text-center fade-in">
+          <div className="w-20 h-20 bg-ink text-accent border-2 border-ink shadow-brut mx-auto mb-8 flex items-center justify-center display font-black text-4xl scale-in circle">✓</div>
+          <div className="mono text-xs text-accent uppercase tracking-widest font-semibold mb-3">Setup received</div>
+          <h1 className="text-3xl md:text-4xl mb-4">You're all set{data.clientName ? `, ${data.clientName.split(" ")[0]}` : ""}.</h1>
+          <p className="text-ink/75 text-base md:text-lg leading-relaxed mb-8">
+            We've got everything we need to build <span className="serif italic font-semibold">{data.agentName || "your agent"}</span>. Our team will take it from here and reach out with next steps. Welcome aboard.
           </p>
-          <div className="space-y-2">
-            {data.workDomains.map(id => {
-              const domain = DOMAINS.find(d => d.id === id);
-              const rank = data.priorityDomains.indexOf(id);
-              return (
-                <button
-                  key={id}
-                  onClick={() => togglePriority(id)}
-                  className={`w-full flex items-center gap-3 p-3 rounded-md border text-left transition-all ${
-                    rank >= 0 ? "bg-card border-ink" : "bg-paper border-ink/15 hover:border-ink/40"
-                  }`}
-                >
-                  <div className={`w-8 h-8 rounded flex items-center justify-center mono text-sm font-semibold ${
-                    rank >= 0 ? "bg-ink text-paper" : "bg-card border border-ink/25 text-ink/40"
-                  }`}>
-                    {rank >= 0 ? rank + 1 : "—"}
-                  </div>
-                  <span className="text-sm">{domain.label}</span>
-                </button>
-              );
-            })}
+          <div className="bg-card border-2 border-ink shadow-brut p-6 text-left">
+            <div className="mono text-xs text-ink/60 uppercase tracking-widest font-semibold mb-3">What happens next</div>
+            <ol className="text-sm text-ink/80 space-y-2 list-decimal list-inside">
+              <li>Our team reviews your setup and configures your agent.</li>
+              <li>We deploy it and connect it to your Telegram.</li>
+              <li>You'll get a message when your agent is live and ready to talk.</li>
+            </ol>
           </div>
+          <p className="text-xs text-ink/50 mt-8">Questions? Reach us anytime at john@thestrategyninjas.com.</p>
         </div>
-      )}
-      <Field label="Anything else?" hint="Free-text. Capture domains we didn't list above.">
-        <input
-          type="text"
-          value={data.workDomainsOther}
-          onChange={e => update({ workDomainsOther: e.target.value })}
-          placeholder="e.g. inventory tracking, podcast prep, fundraising outreach..."
-          className={inputClass}
-        />
-      </Field>
-    </StepShell>
-  );
-}
-
-// ============================================================================
-// STEP 5 — TOOLS
-// ============================================================================
-
-function Step5Tools({ data, update }) {
-  const requiredIds = new Set(
-    data.workDomains.flatMap(id => DOMAINS.find(d => d.id === id)?.requires || [])
-  );
-
-  const toggle = (id) => {
-    const next = { ...data.integrations };
-    if (next[id]) {
-      delete next[id];
-    } else {
-      next[id] = { planned: true };
-    }
-    // Drop priority entries that are no longer selected
-    const nextPriority = data.priorityIntegrations.filter(x => next[x]);
-    update({ integrations: next, priorityIntegrations: nextPriority });
-  };
-
-  const togglePriority = (id) => {
-    if (!data.integrations[id]) return;
-    const inPriority = data.priorityIntegrations.includes(id);
-    if (inPriority) {
-      update({ priorityIntegrations: data.priorityIntegrations.filter(x => x !== id) });
-    } else {
-      if (data.priorityIntegrations.length >= 3) return;
-      update({ priorityIntegrations: [...data.priorityIntegrations, id] });
-    }
-  };
-
-  // Split integrations: standard (non-CRM, included in build) and CRM (add-on, separately quoted)
-  const isCRM = (i) => i.category === "crm";
-  const coreIntegrations = INTEGRATIONS.filter(i => !isCRM(i));
-  const crmIntegrations = INTEGRATIONS.filter(i => isCRM(i));
-
-  const planned = Object.keys(data.integrations).length;
-  // Priority ranking only applies to CORE tools — CRMs are add-ons, not part of the launch priority list
-  const corePlanned = Object.keys(data.integrations).filter(id => {
-    const i = INTEGRATIONS.find(x => x.id === id);
-    return i && !isCRM(i);
-  });
-  const corePrioritySelected = data.priorityIntegrations.filter(id => corePlanned.includes(id)).length;
-  const maxPriority = Math.min(3, corePlanned.length);
-  const allLabel = (id) => INTEGRATIONS.find(i => i.id === id)?.label;
-
-  const renderToolButton = (i) => {
-    const isPlanned = data.integrations[i.id]?.planned;
-    const required = requiredIds.has(i.id);
-    return (
-      <button
-        key={i.id}
-        onClick={() => toggle(i.id)}
-        className={`flex items-center gap-3 p-3 border-2 text-left transition-all ${
-          isPlanned ? "bg-accentSoft border-ink" : "bg-card border-ink/25 hover:border-ink hover:bg-accentSoft"
-        }`}
-      >
-        <div className={`w-5 h-5 flex items-center justify-center flex-shrink-0 ${
-          isPlanned ? "bg-ink" : "border-2 border-ink/25"
-        }`}>
-          {isPlanned && (
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#3EB8C8" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="5 12 10 17 19 8" />
-            </svg>
-          )}
-        </div>
-        <span className="text-sm font-medium flex-1">{i.label}</span>
-        {required && (
-          <span className="mono text-[10px] text-accent">SUGGESTED</span>
-        )}
-      </button>
-    );
-  };
-
-  return (
-    <StepShell
-      eyebrow="Tools"
-      title="Which tools should your agent connect to?"
-      subtitle="Pick everything your team uses. Then rank your top 3 standard tools — those are the ones we'll wire up at launch."
-    >
-      {/* Standard tools — included in the build */}
-      <div className="mono text-xs text-ink/60 uppercase tracking-widest font-semibold mb-2 flex items-center gap-2">
-        <span className="inline-block w-6 h-px bg-accent"></span>
-        Standard integrations (included)
-      </div>
-      <div className="grid grid-cols-2 gap-2">
-        {coreIntegrations.map(renderToolButton)}
-      </div>
-
-      {/* CRMs — add-on, NOT in standard build */}
-      <div className="pt-6 border-t border-ink/15">
-        <div className="mono text-xs text-ink/60 uppercase tracking-widest font-semibold mb-1 flex items-center gap-2">
-          <span className="inline-block w-6 h-px bg-accent"></span>
-          CRM add-ons (not in standard build)
-        </div>
-        <p className="text-sm text-ink/70 mb-3">
-          Note any CRMs your team uses. These aren't included in the standard agent build — they're quoted separately if you want them connected.
-        </p>
-        <div className="grid grid-cols-2 gap-2">
-          {crmIntegrations.map(renderToolButton)}
-        </div>
-      </div>
-
-      {corePlanned.length > 0 && (
-        <div className="pt-6 border-t border-ink/15">
-          <div className="mono text-xs text-ink/60 uppercase tracking-widest font-semibold mb-1">Priority ranking</div>
-          <p className="text-sm text-ink/70 mb-4">
-            {corePlanned.length === 1 && "Your #1 integration."}
-            {corePlanned.length === 2 && "Rank both in order — tap #1 first, then #2."}
-            {corePlanned.length >= 3 && `Pick your top 3 in order — tap #1 first. Tap again to remove.`}
-            {" "}
-            <span className="mono text-xs text-ink/40">
-              ({corePrioritySelected} of {maxPriority} selected)
-            </span>
-          </p>
-          <div className="space-y-2">
-            {corePlanned.map(id => {
-              const rank = data.priorityIntegrations.indexOf(id);
-              return (
-                <button
-                  key={id}
-                  onClick={() => togglePriority(id)}
-                  className={`w-full flex items-center gap-3 p-3 border-2 text-left transition-all ${
-                    rank >= 0 ? "bg-card border-ink" : "bg-paper border-ink/15 hover:border-ink/40"
-                  }`}
-                >
-                  <div className={`w-8 h-8 flex items-center justify-center mono text-sm font-semibold ${
-                    rank >= 0 ? "bg-ink text-paper" : "bg-card border-2 border-ink/25 text-ink/40"
-                  }`}>
-                    {rank >= 0 ? rank + 1 : "—"}
-                  </div>
-                  <span className="text-sm">{allLabel(id)}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      )}
-      <Field label="Tools we didn't list" hint="Anything else they should connect to? Comma-separate.">
-        <input
-          type="text"
-          value={data.integrationsOther}
-          onChange={e => update({ integrationsOther: e.target.value })}
-          placeholder="e.g. BoomTown, LionDesk, custom CRM..."
-          className={inputClass}
-        />
-      </Field>
-      <div className="text-xs text-ink/60 pt-1">
-        🔒 No authentication required here. Once you're onboarded, we'll handle the setup securely on your behalf.
-      </div>
-    </StepShell>
-  );
-}
-
-// ============================================================================
-// STEP 6 — REVIEW + BUILD + PRICING (multi-phase)
-// STEP 7 — OUR PROCESS (final page)
-// Supporting: SummaryCard, PersonalityStat, buildIntakeJSON
-// ============================================================================
-
-function SummaryCard({ title, onEdit, children }) {
-  return (
-    <div className="border-2 border-ink p-5 bg-card">
-      <div className="flex items-center justify-between mb-3 pb-3 border-b border-ink/15">
-        <div className="display font-black text-sm uppercase tracking-tight text-ink flex items-center gap-2">
-          <span className="inline-block w-2 h-2 bg-accent"></span>
-          {title}
-        </div>
-        {onEdit && (
-          <button onClick={onEdit} className="mono text-[10px] uppercase tracking-widest font-semibold text-ink/60 hover:text-accent transition-colors">
-            Edit
-          </button>
-        )}
-      </div>
-      {children}
+      </main>
     </div>
   );
 }
-
-function PersonalityStat({ label, inverse, value }) {
-  const leaning = value < 40 ? label : value > 60 ? inverse : "Balanced";
-  return (
-    <div className="min-w-0">
-      <div className="text-ink/40 uppercase tracking-widest text-[10px] truncate">{label} / {inverse}</div>
-      <div className="font-semibold text-ink mt-0.5 text-sm">{leaning}</div>
-    </div>
-  );
-}
-
-function bandLabel(value, low, mid, high) {
-  if (value < 33) return low;
-  if (value > 66) return high;
-  return mid;
-}
-
-function buildIntakeText(data) {
-  // Plain text — designed to read naturally in an email attachment, terminal, or text editor.
-  // No markdown markup. Uses ASCII separators and indentation for visual structure.
-
-  const industries = data.industries
-    .map(v => INDUSTRIES.find(i => i.value === v)?.label)
-    .filter(Boolean);
-  if (data.industryOther) industries.push(data.industryOther);
-
-  const priorityDomainLabels = data.priorityDomains
-    .map(id => DOMAINS.find(d => d.id === id)?.label)
-    .filter(Boolean);
-  const nonPriorityDomains = data.workDomains
-    .filter(id => !data.priorityDomains.includes(id))
-    .map(id => DOMAINS.find(d => d.id === id)?.label)
-    .filter(Boolean);
-
-  // Split integrations into core (non-CRM) and CRM add-ons
-  const isCRM = (id) => INTEGRATIONS.find(i => i.id === id)?.category === "crm";
-  const teamSizeLabel = TEAM_SIZES.find(t => t.value === data.teamSize)?.label;
-  const agentScopeObj = AGENT_SCOPES.find(s => s.value === data.agentScope);
-
-  const now = new Date();
-  const dateStr = now.toLocaleString("en-US", { dateStyle: "long", timeStyle: "short" });
-
-  const HEAVY = "=".repeat(72);
-  const LIGHT = "-".repeat(72);
-  const center = (txt, w = 72) => {
-    const pad = Math.max(0, Math.floor((w - txt.length) / 2));
-    return " ".repeat(pad) + txt;
-  };
-  const section = (title) => [LIGHT, "  " + title.toUpperCase(), LIGHT];
-  const kv = (key, val, width = 14) => `  ${(key + ":").padEnd(width)} ${val ?? ""}`;
-  const bullet = (txt) => `  • ${txt}`;
-
-  const lines = [];
-
-  // Header
-  lines.push(HEAVY);
-  lines.push(center("CLIENT AGENT INTAKE"));
-  lines.push(HEAVY);
-  lines.push("");
-  lines.push(kv("Captured", dateStr));
-  lines.push(kv("Source", "Discovery call"));
-  lines.push("");
-
-  // Client
-  lines.push(...section("Client"));
-  lines.push("");
-  lines.push(kv("Name", data.name));
-  lines.push(kv("Email", data.email));
-  lines.push("");
-
-  // Business
-  lines.push(...section("Business"));
-  lines.push("");
-  lines.push(`  ${data.businessName}` + (data.businessWebsite ? `   (${data.businessWebsite})` : ""));
-  if (industries.length > 0) {
-    lines.push(kv("Industries", industries.join(", ")));
-  }
-  if (teamSizeLabel) {
-    lines.push(kv("Team size", teamSizeLabel));
-  }
-  if (agentScopeObj) {
-    lines.push(kv("Agent scope", `${agentScopeObj.label} (${agentScopeObj.desc})`));
-  }
-  lines.push("");
-  // Wrap description to ~66 cols, indented 2 spaces
-  const wrapped = wrapText(data.businessDescription, 66).map(l => "  " + l);
-  lines.push(...wrapped);
-  lines.push("");
-  if (data.targetAudience) {
-    lines.push(kv("Serves", data.targetAudience));
-    lines.push("");
-  }
-
-  // Agent
-  lines.push(...section("Agent"));
-  lines.push("");
-  lines.push(kv("Name", data.agentName));
-  lines.push(kv("Emoji", data.agentChoosesEmoji ? "(agent chooses on launch)" : data.agentEmoji));
-  lines.push(kv("One-liner", `"${data.agentDescription}"`));
-  lines.push("");
-  lines.push(`  --- Personality ---`);
-  lines.push("");
-  lines.push(`    Formal  <-->  Casual       ${String(data.formal).padStart(3)}    (${bandLabel(data.formal, "Formal", "Balanced", "Casual")})`);
-  lines.push(`    Concise <-->  Thorough     ${String(data.concise).padStart(3)}    (${bandLabel(data.concise, "Concise", "Balanced", "Thorough")})`);
-  lines.push(`    Reserved <-->  Warm        ${String(data.warm).padStart(3)}    (${bandLabel(data.warm, "Reserved", "Balanced", "Warm")})`);
-  lines.push("");
-  lines.push(kv("Style", (data.communicationStyle || "").replace("_", " ")));
-  lines.push("");
-  if (data.neverDo.length > 0 || data.neverDoCustom) {
-    lines.push(`  Never do:`);
-    data.neverDo.forEach(rule => lines.push(`    • ${rule}`));
-    if (data.neverDoCustom) {
-      lines.push(`    • (Custom) ${data.neverDoCustom}`);
-    }
-    lines.push("");
-  }
-
-  // Work domains
-  lines.push(...section("Work domains"));
-  lines.push("");
-  if (priorityDomainLabels.length > 0) {
-    lines.push(`  Priority (top ${priorityDomainLabels.length}):`);
-    priorityDomainLabels.forEach((label, i) => lines.push(`    ${i + 1}.  ${label}`));
-    lines.push("");
-  }
-  if (nonPriorityDomains.length > 0) {
-    lines.push(`  Also:  ${nonPriorityDomains.join(", ")}`);
-    lines.push("");
-  }
-  if (data.workDomainsOther) {
-    lines.push(kv("Other", data.workDomainsOther));
-    lines.push("");
-  }
-
-  // Tools — split into core (non-CRM, in the standard build) and CRM add-ons (NOT in standard build)
-  const allPicked = Object.keys(data.integrations);
-  const coreToolIds = allPicked.filter(id => !isCRM(id));
-  const crmToolIds = allPicked.filter(id => isCRM(id));
-
-  const corePriorityIds = data.priorityIntegrations.filter(id => coreToolIds.includes(id));
-  const coreSecondaryIds = coreToolIds.filter(id => !corePriorityIds.includes(id));
-  const labelFor = (id) => INTEGRATIONS.find(i => i.id === id)?.label || id;
-
-  lines.push(...section("Tools to connect at launch"));
-  lines.push("");
-  if (corePriorityIds.length > 0) {
-    lines.push(`  Priority (top ${corePriorityIds.length}):`);
-    corePriorityIds.forEach((id, i) => lines.push(`    ${i + 1}.  ${labelFor(id)}`));
-    lines.push("");
-  }
-  if (coreSecondaryIds.length > 0) {
-    lines.push(`  Also discussed: ${coreSecondaryIds.map(labelFor).join(", ")}`);
-    lines.push("");
-  }
-  if (corePriorityIds.length === 0 && coreSecondaryIds.length === 0) {
-    lines.push(`  (none selected)`);
-    lines.push("");
-  }
-  if (data.integrationsOther) {
-    lines.push(kv("Other", data.integrationsOther));
-    lines.push("");
-  }
-
-  // CRM add-ons — flagged separately because they're NOT part of the standard build
-  if (crmToolIds.length > 0) {
-    lines.push(...section("CRM add-ons (not in standard build)"));
-    lines.push("");
-    lines.push(`  These integrations are noted but require a separate quote.`);
-    lines.push(`  They are NOT included in the standard agent build.`);
-    lines.push("");
-    crmToolIds.forEach(id => lines.push(`    • ${labelFor(id)}`));
-    lines.push("");
-  }
-
-  // Footer
-  lines.push(HEAVY);
-  lines.push("  Generated by SN Agent Discovery");
-  lines.push(HEAVY);
-
-  return lines.join("\n");
-}
-
-function wrapText(text, width) {
-  if (!text) return [""];
-  const words = text.split(/\s+/);
-  const out = [];
-  let line = "";
-  for (const w of words) {
-    if ((line + " " + w).trim().length > width) {
-      if (line) out.push(line);
-      line = w;
-    } else {
-      line = (line + " " + w).trim();
-    }
-  }
-  if (line) out.push(line);
-  return out;
-}
-
-// Filename: SNForge-{business-slug}_{agent-slug}_intake_{YYYYMMDD}.txt
-// Example:  SNForge-acme-realty_sage_intake_20260512.txt
-// The "SNForge-" prefix groups all Strategy Ninjas Agent Forge intakes together when
-// sorted in any folder view. Underscores between segments + dashes inside slugs so the
-// filename stays scannable when business or agent name has spaces.
-const FILENAME_PREFIX = "SNForge-";
-
-function slugify(s) {
-  return (s || "").toString().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
-}
-
-function getIntakeFilename(data) {
-  const businessSlug = slugify(data.businessName) || "client";
-  const agentSlug = slugify(data.agentName);
-  const today = new Date().toISOString().slice(0, 10).replace(/-/g, "");
-  const parts = [businessSlug];
-  if (agentSlug) parts.push(agentSlug);
-  parts.push("intake", today);
-  return FILENAME_PREFIX + parts.join("_") + ".txt";
-}
-
-// Downloads the .txt intake file locally. Called from Step 6 "Confirm details" handler.
-function downloadIntakeFile(data) {
-  const content = buildIntakeText(data);
-  const blob = new Blob([content], { type: "text/plain" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = getIntakeFilename(data);
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  setTimeout(() => URL.revokeObjectURL(url), 500);
-}
-
-// Posts the intake .txt to the team Drive folder via a Google Apps Script web app.
-// Fire-and-forget — wizard doesn't block on the response. If the backend URL isn't
-// configured (DRIVE_BACKEND_URL empty), this is a no-op. The local download still fires
-// either way, so the intake never gets lost.
-function postToDrive(data) {
-  if (!DRIVE_BACKEND_URL) return;
-  const payload = {
-    txtFilename: getIntakeFilename(data),
-    txtContent: buildIntakeText(data),
-  };
-  // text/plain content-type avoids a CORS preflight (Apps Script can't handle OPTIONS).
-  // The Apps Script parses the body as JSON server-side.
-  fetch(DRIVE_BACKEND_URL, {
-    method: "POST",
-    headers: { "Content-Type": "text/plain;charset=utf-8" },
-    body: JSON.stringify(payload),
-  }).catch(err => console.warn("Drive backend POST failed (silent fallback):", err));
-}
-
-function AgentSpecCards({ data, editFromReview }) {
-  const connectedIntegrations = Object.keys(data.integrations);
-  const isCRM = (id) => INTEGRATIONS.find(i => i.id === id)?.category === "crm";
-  const coreIntegrationIds = connectedIntegrations.filter(id => !isCRM(id));
-  const crmIntegrationIds = connectedIntegrations.filter(id => isCRM(id));
-  const industryLabels = data.industries
-    .map(v => INDUSTRIES.find(i => i.value === v)?.label)
-    .filter(Boolean);
-  const teamSizeLabel = TEAM_SIZES.find(t => t.value === data.teamSize)?.label;
-  const agentScopeObj = AGENT_SCOPES.find(s => s.value === data.agentScope);
-  const displayEmoji = data.agentChoosesEmoji ? "✨" : data.agentEmoji;
-
-  return (
-    <div className="space-y-4">
-      <SummaryCard title="Agent" onEdit={editFromReview ? () => editFromReview(3) : null}>
-        <div className="flex items-start gap-4">
-          <div className={`w-14 h-14 rounded-lg flex items-center justify-center text-3xl flex-shrink-0 ${
-            data.agentChoosesEmoji ? "bg-ink/5" : "bg-accentSoft"
-          }`}>
-            {displayEmoji}
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="font-semibold">{data.agentName}</div>
-            {data.agentChoosesEmoji && (
-              <div className="mono text-xs text-ink/60 mt-0.5">Emoji: agent picks on launch</div>
-            )}
-            <p className="text-sm text-ink/70 mt-0.5 italic">"{data.agentDescription}"</p>
-            <div className="mt-3 grid grid-cols-3 gap-3 mono text-xs">
-              <PersonalityStat label="Formal" inverse="Casual" value={data.formal} />
-              <PersonalityStat label="Concise" inverse="Thorough" value={data.concise} />
-              <PersonalityStat label="Reserved" inverse="Warm" value={data.warm} />
-            </div>
-          </div>
-        </div>
-      </SummaryCard>
-      <SummaryCard title="Business" onEdit={editFromReview ? () => editFromReview(2) : null}>
-        <div className="text-sm">
-          <div className="font-medium">
-            {data.businessName}
-            {data.businessWebsite && (
-              <span className="text-ink/40 font-normal mono text-xs ml-2">{data.businessWebsite}</span>
-            )}
-          </div>
-          {industryLabels.length > 0 && (
-            <div className="flex flex-wrap gap-1 mt-1">
-              {industryLabels.map(l => (
-                <span key={l} className="mono text-xs bg-ink/5 text-ink/70 px-1.5 py-0.5 rounded">{l}</span>
-              ))}
-              {data.industryOther && (
-                <span className="mono text-xs bg-ink/5 text-ink/70 px-1.5 py-0.5 rounded">{data.industryOther}</span>
-              )}
-            </div>
-          )}
-          <p className="text-ink/70 mt-2">{data.businessDescription}</p>
-          {data.targetAudience && <p className="text-ink/60 text-xs mt-1">Serves: {data.targetAudience}</p>}
-          {(teamSizeLabel || agentScopeObj) && (
-            <div className="mt-2 flex flex-wrap gap-1.5 items-center">
-              {teamSizeLabel && (
-                <span className="mono text-xs bg-ink/5 text-ink/70 px-1.5 py-0.5 rounded">
-                  Team: {teamSizeLabel}
-                </span>
-              )}
-              {agentScopeObj && (
-                <span className="mono text-xs bg-ink/5 text-ink/70 px-1.5 py-0.5 rounded">
-                  Scope: {agentScopeObj.label}
-                </span>
-              )}
-            </div>
-          )}
-        </div>
-      </SummaryCard>
-      <SummaryCard title="Work domains" onEdit={editFromReview ? () => editFromReview(4) : null}>
-        <div className="flex flex-wrap gap-1.5">
-          {data.workDomains.map(id => {
-            const domain = DOMAINS.find(d => d.id === id);
-            const priority = data.priorityDomains.indexOf(id);
-            return (
-              <span
-                key={id}
-                className={`text-xs px-2 py-1 rounded-full ${
-                  priority >= 0 ? "bg-ink text-paper" : "bg-ink/5 text-ink/80"
-                }`}
-              >
-                {priority >= 0 ? `${priority + 1}. ` : ""}{domain?.label}
-              </span>
-            );
-          })}
-          {data.workDomainsOther && (
-            <span className="text-xs px-2 py-1 rounded-full bg-ink/5 text-ink/80 italic">+ {data.workDomainsOther}</span>
-          )}
-        </div>
-      </SummaryCard>
-      <SummaryCard title="Launch integrations" onEdit={editFromReview ? () => editFromReview(5) : null}>
-        {connectedIntegrations.length === 0 ? (
-          <div className="text-sm text-amber-700 bg-amber-50 rounded p-3 -m-1">
-            ⚠ No integrations on the launch list yet.
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {coreIntegrationIds.length > 0 && (
-              <div>
-                <div className="mono text-[10px] text-ink/60 uppercase tracking-widest font-semibold mb-1.5">Standard (included)</div>
-                <div className="flex flex-wrap gap-1.5">
-                  {coreIntegrationIds.map(id => {
-                    const priority = data.priorityIntegrations.indexOf(id);
-                    return (
-                      <span
-                        key={id}
-                        className={`text-xs px-2 py-1 ${
-                          priority >= 0 ? "bg-ink text-paper font-medium" : "bg-ink/5 text-ink/80"
-                        }`}
-                      >
-                        {priority >= 0 ? `${priority + 1}. ` : ""}{INTEGRATIONS.find(i => i.id === id)?.label}
-                      </span>
-                    );
-                  })}
-                  {data.integrationsOther && (
-                    <span className="text-xs bg-ink/5 text-ink/80 px-2 py-1 italic">+ {data.integrationsOther}</span>
-                  )}
-                </div>
-                <p className="mono text-xs text-ink/60 mt-1.5">
-                  Numbered ones launch with the build. Others stay in the queue for later.
-                </p>
-              </div>
-            )}
-            {crmIntegrationIds.length > 0 && (
-              <div className="pt-2 border-t border-ink/10">
-                <div className="mono text-[10px] text-accent uppercase tracking-widest font-semibold mb-1.5">CRM add-ons (quoted separately)</div>
-                <div className="flex flex-wrap gap-1.5">
-                  {crmIntegrationIds.map(id => (
-                    <span key={id} className="text-xs px-2 py-1 bg-accentSoft text-accent font-medium border border-accent">
-                      {INTEGRATIONS.find(i => i.id === id)?.label}
-                    </span>
-                  ))}
-                </div>
-                <p className="mono text-xs text-ink/60 mt-1.5">
-                  Not part of the standard build — SN will quote separately.
-                </p>
-              </div>
-            )}
-          </div>
-        )}
-      </SummaryCard>
-    </div>
-  );
-}
-
-function fireConfetti() {
-  if (typeof confetti !== "function") return;
-  const burst = (opts) => confetti({
-    particleCount: 60,
-    spread: 70,
-    startVelocity: 45,
-    gravity: 0.9,
-    ticks: 200,
-    colors: ["#0a0a0a", "#4338ca", "#eef2ff", "#f59e0b", "#fafaf9"],
-    ...opts,
-  });
-  burst({ origin: { x: 0.5, y: 0.55 } });
-  setTimeout(() => burst({ particleCount: 40, angle: 60, spread: 55, origin: { x: 0, y: 0.7 } }), 180);
-  setTimeout(() => burst({ particleCount: 40, angle: 120, spread: 55, origin: { x: 1, y: 0.7 } }), 320);
-}
-
-function Step6Review({ data, editFromReview, onSubmit, onBack }) {
-  // Phases: 'review' → 'sending' (build animation + silent backend) → onSubmit() advances to Step 7 (Pricing)
-  const [phase, setPhase] = useState("review");
-  const [stageIdx, setStageIdx] = useState(0);
-  const [completedStages, setCompletedStages] = useState([]);
-  const stages = BUILD_STAGES;
-  const stageDuration = 500;
-
-  // Drive build animation + silent send during 'sending' phase
-  useEffect(() => {
-    if (phase !== "sending") return;
-
-    // === DELIVERY ===
-    // 1. Local download to consultant's Downloads folder (always)
-    // 2. POST to Google Apps Script → drops .txt into the team Drive folder
-    //    (only if DRIVE_BACKEND_URL is configured; otherwise silently no-ops)
-    downloadIntakeFile(data);
-    postToDrive(data);
-
-    const timers = stages.map((_, i) =>
-      setTimeout(() => {
-        setStageIdx(i);
-        setCompletedStages(c => i > 0 ? [...c, i - 1] : c);
-      }, i * stageDuration)
-    );
-    const done = setTimeout(() => {
-      setCompletedStages(stages.map((_, i) => i));
-      fireConfetti();
-      // Brief beat after the recap finishes before advancing
-      setTimeout(() => onSubmit(), 1100);
-    }, stages.length * stageDuration + 300);
-    return () => { timers.forEach(clearTimeout); clearTimeout(done); };
-  }, [phase]);
-
-  // ---------- review ----------
-  if (phase === "review") {
-    return (
-      <StepShell
-        eyebrow="Review"
-        title={`Meet ${data.agentName} ${data.agentChoosesEmoji ? "✨" : data.agentEmoji}`}
-        subtitle="Take one last look together. Click Edit on any card to tweak something. When it's right, confirm — your intake files will download to my machine and we'll move on to pricing."
-      >
-        <AgentSpecCards data={data} editFromReview={editFromReview} />
-        <div className="pt-6 border-t-2 border-ink/15 flex items-center justify-between flex-wrap gap-3">
-          <button
-            onClick={onBack}
-            className="mono text-xs uppercase tracking-widest font-semibold text-ink/70 hover:text-ink transition-colors"
-          >
-            ← Back to tools
-          </button>
-          <button
-            onClick={() => setPhase("sending")}
-            className="display font-black text-xs uppercase tracking-widest bg-accent text-ink border-2 border-ink px-6 py-3 shadow-brut hover:shadow-brut-hover hover:-translate-x-0.5 hover:-translate-y-0.5 active:translate-x-0 active:translate-y-0 active:shadow-brut-sm transition-all"
-          >
-            Confirm details →
-          </button>
-        </div>
-        <p className="text-xs text-ink/60 text-center pt-2">
-          Confirming downloads the intake to my machine. Next we'll review pricing together.
-        </p>
-      </StepShell>
-    );
-  }
-
-  // ---------- sending (journey-recap animation + silent backend fire) ----------
-  const stage = stages[stageIdx];
-  const title = typeof stage.title === "function" ? stage.title(data) : stage.title;
-  return (
-    <div className="text-center py-8">
-      <div className="relative w-32 h-32 mx-auto mb-8">
-        <div className="absolute inset-0 border-4 border-accent pulse-ring circle"></div>
-        <div key={stageIdx} className="absolute inset-0 flex items-center justify-center text-5xl scale-in">
-          {stage.emoji}
-        </div>
-      </div>
-      <div className="mono text-xs text-ink/60 uppercase tracking-widest font-semibold mb-2">Saving your spec</div>
-      <h1 className="font-black text-2xl md:text-3xl mb-2">{title}</h1>
-      <p className="text-ink/70 text-sm mb-8">{stage.sub}</p>
-      <div className="flex items-center justify-center gap-2 flex-wrap max-w-md mx-auto">
-        {stages.map((s, i) => {
-          const done = completedStages.includes(i);
-          const active = i === stageIdx;
-          return (
-            <div
-              key={i}
-              className={`w-10 h-10 flex items-center justify-center text-lg transition-all border-2 circle ${
-                active ? "bg-accent border-ink scale-110 shadow-brut-sm" :
-                done ? "bg-ink border-ink text-accent" :
-                "bg-card border-ink/20 opacity-50"
-              }`}
-            >
-              {done && !active ? (
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3EB8C8" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="5 12 10 17 19 8" />
-                </svg>
-              ) : s.emoji}
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-// ============================================================================
-// STEP 7 — WELCOME / CONGRATS (final page)
-// AI Operator framing — "first step on the path to becoming an AI Operator"
-// Generic timeline that doesn't depend on a pricing tier
-// ============================================================================
-
-function Step7Welcome({ data }) {
-  const firstName = data.name?.split(" ")[0] || "there";
-
-  const timeline = [
-    { tag: "Step 1", title: "Discovery captured", body: "You just finished it. Your spec is on its way to our team." },
-    { tag: "Step 2", title: "Pricing + contract", body: "We'll review the spec internally and send pricing options that fit the build, plus a contract — within one business day." },
-    { tag: "Step 3", title: "Build kickoff", body: `Once signed, the build for ${data.agentName || "your agent"} starts immediately. You'll get progress updates along the way.` },
-    { tag: "Step 4", title: "Handoff + training", body: "When the agent is ready, we run a live handoff call. You walk away with a working agent and the skills to operate it." },
-  ];
-
-  return (
-    <div className="py-4 fade-in">
-      <div className="text-center mb-10">
-        <div className="w-20 h-20 bg-ink text-accent border-2 border-ink shadow-brut mx-auto mb-6 flex items-center justify-center circle font-black text-4xl">
-          ✓
-        </div>
-        <div className="mono text-xs text-accent uppercase tracking-widest font-semibold mb-2">Welcome, AI Operator</div>
-        <h1 className="text-3xl md:text-5xl font-bold mb-4">
-          You just took your first step.
-        </h1>
-        <p className="text-ink/75 text-base md:text-lg max-w-xl mx-auto leading-relaxed">
-          Building your AI agent is the first step on the path to becoming an{" "}
-          <span className="serif italic font-semibold">AI Operator</span> —
-          the person on your team who knows how to design, deploy, and run intelligent systems.
-          You're not just getting an agent, {firstName}. You're learning how to build one.
-        </p>
-      </div>
-
-      <div className="max-w-2xl mx-auto">
-        <div className="mono text-xs text-ink/60 uppercase tracking-widest font-semibold mb-3 px-1">What happens next</div>
-        {timeline.map((stage, i) => (
-          <div key={i} className={`flex gap-4 items-start p-5 bg-card border-2 border-ink ${i > 0 ? "border-t-0" : ""}`}>
-            <div className="w-10 h-10 bg-ink text-accent display font-black flex items-center justify-center flex-shrink-0 text-lg circle">
-              {i + 1}
-            </div>
-            <div className="flex-1">
-              <div className="mono text-xs text-ink/60 uppercase tracking-widest font-semibold mb-1">{stage.tag}</div>
-              <div className="display font-black uppercase text-base text-ink mb-1">{stage.title}</div>
-              <p className="text-sm text-ink/70 leading-relaxed">{stage.body}</p>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <p className="text-xs text-ink/60 text-center mt-10 max-w-md mx-auto">
-        Questions before we get back to you? Reach out anytime at john@thestrategyninjas.com.
-      </p>
-
-      <IntakePreview data={data} />
-    </div>
-  );
-}
-
-function IntakePreview({ data }) {
-  const [open, setOpen] = useState(false);
-  const txt = useMemo(() => buildIntakeText(data), [data]);
-
-  if (!open) {
-    return (
-      <div className="text-center mt-12 pt-6 border-t border-ink/10">
-        <button
-          onClick={() => setOpen(true)}
-          className="mono text-xs text-ink/40 hover:text-ink transition-colors"
-        >
-          ◧ Preview intake (internal use)
-        </button>
-      </div>
-    );
-  }
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center px-4 py-6 overlay-in" style={{ background: "rgba(24, 24, 24, 0.5)" }}>
-      <div className="bg-card border-2 border-ink shadow-brut-lg max-w-3xl w-full max-h-full flex flex-col">
-        <div className="flex items-center justify-between p-5 border-b-2 border-ink">
-          <div>
-            <div className="mono text-xs text-ink/60 uppercase tracking-widest font-semibold">Intake preview</div>
-            <div className="display font-black text-sm uppercase tracking-tight">Internal use — shows what gets saved to Drive</div>
-          </div>
-          <button
-            onClick={() => setOpen(false)}
-            className="w-8 h-8 hover:bg-ink/5 flex items-center justify-center text-ink/60 font-black"
-            aria-label="Close"
-          >
-            ✕
-          </button>
-        </div>
-        <div className="overflow-y-auto p-6 flex-1 bg-paper">
-          <pre className="mono text-xs text-ink/90 whitespace-pre leading-relaxed">{txt}</pre>
-        </div>
-        <div className="border-t-2 border-ink p-4 flex items-center justify-between gap-3 flex-wrap bg-card">
-          <div className="text-xs text-ink/60">
-            On Confirm details, this file downloads locally and posts to the team Drive folder.
-          </div>
-          <div className="flex gap-2">
-            <button
-              onClick={() => {
-                navigator.clipboard?.writeText(txt);
-              }}
-              className="mono text-xs uppercase tracking-widest font-semibold px-3 py-1.5 border-2 border-ink hover:bg-paper"
-            >
-              Copy
-            </button>
-            <button
-              onClick={() => {
-                const blob = new Blob([txt], { type: "text/plain" });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement("a");
-                a.href = url;
-                a.download = getIntakeFilename(data);
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                setTimeout(() => URL.revokeObjectURL(url), 100);
-              }}
-              className="mono text-xs uppercase tracking-widest font-semibold px-3 py-1.5 bg-ink text-accent border-2 border-ink hover:bg-ink/90"
-            >
-              Download
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-
-// ============================================================================
-// MOUNT
-// ============================================================================
 
 ReactDOM.createRoot(document.getElementById("root")).render(<App />);
 </script>
