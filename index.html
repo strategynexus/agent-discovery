@@ -77,6 +77,12 @@ const { useState, useMemo } = React;
 // Google Apps Script web-app endpoint that saves the intake to Drive + emails the team.
 const BACKEND_URL = "https://script.google.com/macros/s/AKfycbwlDjUnvf-2SSI-vVdIUaWNDHyC3z4OLWmbzFPWwLQx9PXTp59s5q1pgFX4eaRt8aZY/exec";
 
+// Artifact versioning. SCHEMA_VERSION tags the intake format; KEY_ID identifies which
+// keypair encrypted the secrets (so a future key rotation stays traceable — bump KEY_ID
+// whenever PUBLIC_KEY_SPKI_B64 below is replaced).
+const SCHEMA_VERSION = "agent_setup_v1";
+const KEY_ID = "sn-intake-2026-07";
+
 // RSA-2048 public key (SPKI, base64). Encrypts the sensitive fields in the browser
 // before anything is sent. Only Strategy Ninjas holds the matching private key.
 // Safe to be public — a public key can lock but never unlock.
@@ -292,6 +298,8 @@ function App() {
 
       const payload = {
         kind: "agent_setup_v1",
+        schema_version: SCHEMA_VERSION,
+        encryption_key_id: KEY_ID,
         filename,
         agentType: data.agentType === "Other" ? data.agentTypeOther.trim() : data.agentType,
         clientName: data.clientName.trim(),
