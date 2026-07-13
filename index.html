@@ -106,6 +106,37 @@ const TIMEZONES = [
   "Other",
 ];
 
+// Agent profile-picture gallery (shown on the thank-you page as a fun bonus).
+// Files live in a public Drive folder; ids pulled from it. To refresh after
+// swapping images in the folder, re-list it and update these ids.
+const PFP_FOLDER_URL = "https://drive.google.com/drive/folders/1cFjXQI21bu1PAIi60LWj_sEsIJ_sNB7g";
+const AGENT_PFPS = [
+  { n: 1,  id: "1A7pqjebRyfvRXrT_ICGGU8kgVLpHwzFK" },
+  { n: 2,  id: "1TK7FIwWKDCMjSpx4nOvTYpYg4nrk2gDz" },
+  { n: 3,  id: "1W8AN43YqdIEcbKhbX5B3HXsv8T-tdCFL" },
+  { n: 4,  id: "1tL0hrZNJ405K3qe_7Q7djiHmbVVJZ3JR" },
+  { n: 5,  id: "1H7okGoQha2oAlaKG_ti7ngkjUcK8sOOT" },
+  { n: 6,  id: "1CjvM6P2Sm2vFyR_6GeuG2vvm-C--HyHj" },
+  { n: 7,  id: "1PmoX-e-RG3hUAz3jSONX8O01DcPqhylo" },
+  { n: 8,  id: "1N26TCDlGehr3EKOFN8i7ebu5eCVcPzES" },
+  { n: 9,  id: "1OfTIZe3G4_n9JO_7sEFEjPBga6debWUb" },
+  { n: 10, id: "1FtH-mTVl5WkazBMDC_ALo5Kq6QW_66bv" },
+  { n: 11, id: "10FsuZI4oTJ6hmWawPaD5yepQHRe7qNgn" },
+  { n: 12, id: "1PiLrpsLOzZ73fW9OUKfjKIkyZOlbR1Tw" },
+  { n: 13, id: "1SWbTZhOQ3OacS9FQdG4Q4V5LnE8MBN55" },
+  { n: 14, id: "1gtqzKMnbz-9a4Ca9t0FPGjRt9zLihA--" },
+  { n: 15, id: "1E9ypCmKWS68aWGrC7Z3OFY7B04RcpE8D" },
+  { n: 16, id: "17yIj6fauC8P3rT8fQdJKgX1vGE9Aceve" },
+  { n: 17, id: "1bzF6K4FMVFCYdylzrURqHxVnnS8ezgmw" },
+  { n: 18, id: "1VMAYHqRLWjihNNmffdERNxQGZKTm108r" },
+  { n: 19, id: "1CNsPCawBD47icqMoMlTZYCqTlp-9i2Iq" },
+  { n: 20, id: "1WdOKJLjxdO7YaswZKA5SIgSyVscWMoK_" },
+];
+// Drive endpoints: thumbnail for display (embeds cleanly), uc?export=download for the file.
+const pfpThumb = (id) => `https://drive.google.com/thumbnail?id=${id}&sz=w500`;
+const pfpFull  = (id) => `https://lh3.googleusercontent.com/d/${id}=w500`;
+const pfpDownload = (id) => `https://drive.google.com/uc?export=download&id=${id}`;
+
 // ============================================================================
 // ENCRYPTION (Web Crypto, RSA-OAEP SHA-256)
 // ============================================================================
@@ -574,16 +605,51 @@ function Header() {
 }
 
 function ThankYou({ data }) {
+  const [showGallery, setShowGallery] = useState(false);
+  const [selected, setSelected] = useState(null);
+
+  const agent = data.agentName || "your agent";
+  const first = data.clientName ? `, ${data.clientName.split(" ")[0]}` : "";
+
+  const burst = (opts) => {
+    if (typeof confetti === "function") {
+      confetti(Object.assign({ ticks: 200, colors: ["#3EB8C8", "#181818", "#BBB469", "#F7F3EA"] }, opts));
+    }
+  };
+
+  const reveal = () => {
+    setShowGallery(true);
+    burst({ particleCount: 70, spread: 85, startVelocity: 42, gravity: 0.9, origin: { x: 0.5, y: 0.4 } });
+    setTimeout(() => {
+      const el = document.getElementById("pfp-gallery");
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 80);
+  };
+
+  const pick = (n) => {
+    setSelected(n);
+    burst({ particleCount: 26, spread: 55, startVelocity: 28, gravity: 1, scalar: 0.8, origin: { x: 0.5, y: 0.55 }, colors: ["#3EB8C8", "#BBB469"] });
+  };
+
+  const download = (pfp) => {
+    const a = document.createElement("a");
+    a.href = pfpDownload(pfp.id);
+    a.download = "your-agent-face.png";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
+
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
-      <main className="flex-1 flex items-center justify-center px-6 py-16">
+      <main className="flex-1 flex flex-col items-center px-6 py-16">
         <div className="max-w-lg text-center fade-in">
           <div className="w-20 h-20 bg-ink text-accent border-2 border-ink shadow-brut mx-auto mb-8 flex items-center justify-center display font-black text-4xl scale-in circle">✓</div>
           <div className="mono text-xs text-accent uppercase tracking-widest font-semibold mb-3">Setup received</div>
-          <h1 className="text-3xl md:text-4xl mb-4">You're all set{data.clientName ? `, ${data.clientName.split(" ")[0]}` : ""}.</h1>
+          <h1 className="text-3xl md:text-4xl mb-4">You're all set{first}.</h1>
           <p className="text-ink/75 text-base md:text-lg leading-relaxed mb-8">
-            We've got everything we need to build <span className="serif italic font-semibold">{data.agentName || "your agent"}</span>. Our team will take it from here and reach out with next steps. Welcome aboard.
+            We've got everything we need to build <span className="serif italic font-semibold">{agent}</span>. Our team will take it from here and reach out with next steps. Welcome aboard.
           </p>
           <div className="bg-card border-2 border-ink shadow-brut p-6 text-left">
             <div className="mono text-xs text-ink/60 uppercase tracking-widest font-semibold mb-3">What happens next</div>
@@ -593,8 +659,83 @@ function ThankYou({ data }) {
               <li>You'll get a message when your agent is live and ready to talk.</li>
             </ol>
           </div>
-          <p className="text-xs text-ink/50 mt-8">Questions? Reach us anytime at info@thestrategyninjas.com.</p>
+
+          {!showGallery && (
+            <div className="mt-10">
+              <div className="mono text-xs text-accent uppercase tracking-widest font-semibold mb-3">🎉 Now the fun part</div>
+              <button
+                onClick={reveal}
+                className="display font-bold uppercase tracking-wide text-base px-8 py-4 bg-accent text-ink border-2 border-ink shadow-brut hover:shadow-brut-lg hover:-translate-x-1 hover:-translate-y-1 active:translate-x-0 active:translate-y-0 active:shadow-brut-sm transition-all"
+              >
+                🎨 Choose your agent's face →
+              </button>
+              <p className="text-xs text-ink/50 mt-3">Pick from 20 designs and download your favorite.</p>
+            </div>
+          )}
+
+          <p className="text-xs text-ink/50 mt-10">Questions? Reach us anytime at info@thestrategyninjas.com.</p>
         </div>
+
+        {showGallery && (
+          <div id="pfp-gallery" className="w-full max-w-3xl mt-16 fade-in">
+            <div className="text-center mb-8">
+              <div className="mono text-xs text-accent uppercase tracking-widest font-semibold mb-2">Pick a face</div>
+              <h2 className="text-2xl md:text-3xl mb-3">Give {agent} a face.</h2>
+              <p className="text-sm text-ink/60 max-w-md mx-auto">Tap your favorite, then download it. Setting it on your bot takes one minute — we'll show you how.</p>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 md:gap-4">
+              {AGENT_PFPS.map((pfp) => {
+                const isSel = selected === pfp.n;
+                return (
+                  <button
+                    key={pfp.n}
+                    onClick={() => pick(pfp.n)}
+                    className={`relative aspect-square bg-card overflow-hidden border-2 transition-all ${isSel ? "border-accent shadow-brut -translate-x-0.5 -translate-y-0.5" : "border-ink hover:shadow-brut-sm hover:-translate-x-0.5 hover:-translate-y-0.5"}`}
+                  >
+                    <img
+                      src={pfpThumb(pfp.id)}
+                      alt={`Agent face ${pfp.n}`}
+                      loading="lazy"
+                      referrerPolicy="no-referrer"
+                      onError={(e) => { if (!e.target.dataset.fb) { e.target.dataset.fb = "1"; e.target.src = pfpFull(pfp.id); } }}
+                      className="w-full h-full object-cover"
+                    />
+                    {isSel && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-accent/25 overlay-in">
+                        <div className="w-10 h-10 bg-accent text-ink border-2 border-ink flex items-center justify-center display font-black circle scale-in">✓</div>
+                      </div>
+                    )}
+                    <div className="absolute top-1 left-1 mono text-[10px] font-semibold px-1.5 py-0.5 bg-ink/75 text-paper">{pfp.n}</div>
+                  </button>
+                );
+              })}
+            </div>
+
+            {selected && (
+              <div className="mt-8 text-center fade-in">
+                <button
+                  onClick={() => download(AGENT_PFPS[selected - 1])}
+                  className="display font-bold uppercase tracking-wide text-sm px-8 py-4 bg-ink text-paper border-2 border-ink shadow-brut hover:bg-accent hover:text-ink transition-all"
+                >
+                  ⬇ Download face #{selected}
+                </button>
+                <div className="mt-6 max-w-md mx-auto bg-accentSoft border-2 border-ink p-4 text-left">
+                  <div className="mono text-[11px] text-ink/70 uppercase tracking-widest font-semibold mb-2">Set it as your agent's photo</div>
+                  <ol className="text-sm text-ink/80 space-y-1.5 list-decimal list-inside">
+                    <li>In Telegram, open a chat with <span className="mono font-semibold">@BotFather</span>.</li>
+                    <li>Send <span className="mono font-semibold">/setuserpic</span> and choose your bot.</li>
+                    <li>Upload the image you just downloaded. That's your agent's face. ✨</li>
+                  </ol>
+                </div>
+              </div>
+            )}
+
+            <p className="text-center text-xs text-ink/40 mt-10">
+              Want to see them bigger? <a href={PFP_FOLDER_URL} target="_blank" rel="noopener noreferrer" className="underline hover:text-accent">Browse all designs in Drive →</a>
+            </p>
+          </div>
+        )}
       </main>
     </div>
   );
