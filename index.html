@@ -184,17 +184,6 @@ const HOWTO = {
       ["Click next, then copy the full API key.", "Paste it into the Anthropic API Key field."],
     ],
   },
-  agentMail: {
-    title: "Get your AgentMail API key",
-    steps: [
-      ["Go to console.agentmail.to.", "Sign up for a free account."],
-      ["In the left menu, click \"API Keys\".", ""],
-      ["Click \"Create New API Key\".", ""],
-      ["Give it a name.", "For example, your agent's name."],
-      ["Copy the key right away.", "It's shown only once and starts with \"am_\". Paste it into the AgentMail API Key field."],
-      ["That's it for the key.", "You don't need to create an inbox yourself — we'll set up your agent's email address during deployment."],
-    ],
-  },
 };
 
 // ============================================================================
@@ -282,9 +271,6 @@ const initialData = {
   agentName: "",
   botToken: "",
   apiKey: "",
-  agentEmailWanted: null,  // null (unanswered) | true | false
-  agentMailEmail: "",      // optional preferred address (plaintext)
-  agentMailApiKey: "",     // encrypted
   commStyle: "",
   businessContext: "",
   consent: false,
@@ -297,7 +283,6 @@ function App() {
   const [errorMsg, setErrorMsg] = useState("");
   const [showBot, setShowBot] = useState(false);
   const [showKey, setShowKey] = useState(false);
-  const [showMail, setShowMail] = useState(false);
 
   const update = (patch) => setData(d => ({ ...d, ...patch }));
 
@@ -312,8 +297,6 @@ function App() {
     const typeOk = data.agentType && (data.agentType !== "Other" || data.agentTypeOther.trim().length > 1);
     const tzOk = data.timezone && (data.timezone !== "Other" || data.timezoneOther.trim().length > 1);
     const tgOk = data.telegramUserIds.some(id => id.trim().length >= 3);
-    const emailOk = data.agentEmailWanted === false ||
-      (data.agentEmailWanted === true && data.agentMailApiKey.trim().length >= 10);
     return (
       typeOk &&
       data.clientName.trim().length >= 2 &&
@@ -324,7 +307,6 @@ function App() {
       data.agentName.trim().length >= 2 &&
       data.botToken.trim().length >= 10 &&
       data.apiKey.trim().length >= 10 &&
-      emailOk &&
       data.consent === true
     );
   }, [data]);
@@ -338,14 +320,12 @@ function App() {
     try {
       // Collect the Telegram IDs (drop blanks) into one comma-joined string, then encrypt.
       const tgList = data.telegramUserIds.map(s => s.trim()).filter(Boolean).join(", ");
-      const wantEmail = data.agentEmailWanted === true;
 
       // Encrypt the sensitive fields in the browser before anything leaves the page.
-      const [encTgIds, encBot, encKey, encMail] = await Promise.all([
+      const [encTgIds, encBot, encKey] = await Promise.all([
         encryptField(tgList),
         encryptField(data.botToken.trim()),
         encryptField(data.apiKey.trim()),
-        encryptField(wantEmail ? data.agentMailApiKey.trim() : ""),
       ]);
 
       const timezone = data.timezone === "Other" ? data.timezoneOther.trim() : data.timezone;
@@ -366,14 +346,11 @@ function App() {
         agentName: data.agentName.trim(),
         commStyle: data.commStyle.trim(),
         businessContext: data.businessContext.trim(),
-        agentEmailWanted: wantEmail,
-        agentMailEmail: wantEmail ? data.agentMailEmail.trim() : "",
         consent: data.consent === true,
         // encrypted (base64 RSA-OAEP ciphertext)
         enc_telegramUserIds: encTgIds,
         enc_botToken: encBot,
         enc_apiKey: encKey,
-        enc_agentMailApiKey: encMail,
         capturedAt: new Date().toString(),
       };
 
@@ -529,46 +506,6 @@ function App() {
           </div>
         </Field>
 
-        {/* AgentMail — optional agent email address */}
-        <Field label="Do you want your agent to have its own email address?" required hint="Gives your agent an inbox it can send from and read. Optional.">
-          <div className="grid grid-cols-2 gap-2">
-            {[["Yes", true], ["No", false]].map(([label, val]) => (
-              <button
-                key={label}
-                type="button"
-                onClick={() => update({ agentEmailWanted: val })}
-                className={`chip text-sm px-3 py-3 border-2 transition-all font-medium ${
-                  data.agentEmailWanted === val ? "bg-ink text-paper border-ink" : "bg-card border-ink/25 hover:border-ink hover:bg-accentSoft"
-                }`}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-        </Field>
-
-        {data.agentEmailWanted === true && (
-          <div className="mb-6 -mt-2 pl-4 border-l-2 border-accent">
-            <Field label="AgentMail API Key" required howto="How to get your key" onHowto={() => setModal("agentMail")} hint="🔒 Encrypted before it leaves this page.">
-              <div className="relative">
-                <input
-                  type={showMail ? "text" : "password"}
-                  value={data.agentMailApiKey}
-                  onChange={e => update({ agentMailApiKey: e.target.value })}
-                  placeholder="am_..."
-                  className={inputClass + " pr-16"}
-                />
-                <button type="button" onClick={() => setShowMail(s => !s)} className="absolute right-3 top-1/2 -translate-y-1/2 mono text-[11px] uppercase tracking-widest text-ink/50 hover:text-ink">
-                  {showMail ? "Hide" : "Show"}
-                </button>
-              </div>
-            </Field>
-            <Field label="Preferred email address (optional)" hint="e.g. yourco@agentmail.to — leave blank and we'll create one for you.">
-              <input type="text" value={data.agentMailEmail} onChange={e => update({ agentMailEmail: e.target.value })} placeholder="yourco@agentmail.to" className={inputClass} />
-            </Field>
-          </div>
-        )}
-
         <div className="my-8 border-t-2 border-ink/10"></div>
 
         {/* Comm style */}
@@ -615,7 +552,7 @@ function App() {
             ) : "Submit my setup →"}
           </button>
           <p className="text-xs text-ink/50 text-center mt-3">
-            🔒 Your Telegram ID(s), bot token, and API keys are encrypted in your browser before they're sent. Only the Strategy Ninjas team can read them.
+            🔒 Your Telegram ID(s), bot token, and API key are encrypted in your browser before they're sent. Only the Strategy Ninjas team can read them.
           </p>
         </div>
       </main>
