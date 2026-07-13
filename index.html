@@ -725,12 +725,15 @@ function ThankYou({ data }) {
                   ⬇ Download face #{selected}
                 </button>
                 <div className="mt-6 max-w-md mx-auto bg-accentSoft border-2 border-ink p-4 text-left">
-                  <div className="mono text-[11px] text-ink/70 uppercase tracking-widest font-semibold mb-2">Set it as your agent's photo</div>
-                  <ol className="text-sm text-ink/80 space-y-1.5 list-decimal list-inside">
-                    <li>In Telegram, open a chat with <span className="mono font-semibold">@BotFather</span>.</li>
-                    <li>Send <span className="mono font-semibold">/setuserpic</span> and choose your bot.</li>
-                    <li>Upload the image you just downloaded. That's your agent's face. ✨</li>
-                  </ol>
+                  <div className="mono text-[11px] text-ink/70 uppercase tracking-widest font-semibold mb-3">Set it as your agent's photo — two ways</div>
+                  <div className="mb-3">
+                    <div className="text-sm font-semibold text-ink mb-1">Right on your bot (fastest)</div>
+                    <p className="text-sm text-ink/80">Open your bot's chat, tap its name at the top to open its profile, tap <span className="font-semibold">Edit</span>, then tap the photo icon and upload the image.</p>
+                  </div>
+                  <div className="border-t border-ink/15 pt-3">
+                    <div className="text-sm font-semibold text-ink mb-1">Or through @BotFather</div>
+                    <p className="text-sm text-ink/80">Message <span className="mono font-semibold">@BotFather</span>, send <span className="mono font-semibold">/setuserpic</span>, choose your bot, and upload the image. ✨</p>
+                  </div>
                 </div>
               </div>
             )}
