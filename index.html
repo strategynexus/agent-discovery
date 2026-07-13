@@ -307,10 +307,14 @@ const initialData = {
   consent: false,
 };
 
+// ?preview=faces jumps straight to the thank-you page with the gallery open —
+// a shareable way for the team to see it without filling out the whole form.
+const PREVIEW = new URLSearchParams(window.location.search).get("preview") === "faces";
+
 function App() {
   const [data, setData] = useState(initialData);
   const [modal, setModal] = useState(null);
-  const [phase, setPhase] = useState("form"); // form | submitting | done | error
+  const [phase, setPhase] = useState(PREVIEW ? "done" : "form"); // form | submitting | done | error
   const [errorMsg, setErrorMsg] = useState("");
   const [showBot, setShowBot] = useState(false);
   const [showKey, setShowKey] = useState(false);
@@ -605,7 +609,7 @@ function Header() {
 }
 
 function ThankYou({ data }) {
-  const [showGallery, setShowGallery] = useState(false);
+  const [showGallery, setShowGallery] = useState(PREVIEW); // preview link opens the gallery immediately
   const [selected, setSelected] = useState(null);
 
   const agent = data.agentName || "your agent";
@@ -696,7 +700,7 @@ function ThankYou({ data }) {
                     <img
                       src={pfpThumb(pfp.id)}
                       alt={`Agent face ${pfp.n}`}
-                      loading="lazy"
+                      loading={PREVIEW ? "eager" : "lazy"}
                       referrerPolicy="no-referrer"
                       onError={(e) => { if (!e.target.dataset.fb) { e.target.dataset.fb = "1"; e.target.src = pfpFull(pfp.id); } }}
                       className="w-full h-full object-cover"
