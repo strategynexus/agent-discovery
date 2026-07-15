@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Strategy Ninjas — Quick Encrypt</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700;900&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Source+Serif+4:ital,wght@0,400;0,600;0,700;0,900;1,400&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+<script>
+  tailwind.config = {
+    corePlugins: { preflight: true },
+    theme: {
+      extend: {
+        fontFamily: {
+          sans: ['Inter', 'system-ui', 'sans-serif'],
+          display: ['"Space Grotesk"', 'system-ui', 'sans-serif'],
+          serif: ['"Source Serif 4"', 'Georgia', 'serif'],
+          mono: ['JetBrains Mono', 'monospace'],
+        },
+        colors: {
+          ink: '#181818',
+          paper: '#F7F3EA',
+          card: '#FFFFFF',
+          darkCard: '#101010',
+          accent: '#3EB8C8',
+          accentSoft: '#E8F6F8',
+          gold: '#BBB469',
+        },
+        boxShadow: {
+          brut: '6px 6px 0 0 #181818',
+          'brut-sm': '4px 4px 0 0 #181818',
+          'brut-lg': '14px 14px 0 0 #181818',
+          'brut-hover': '8px 8px 0 0 #181818',
+        },
+        borderRadius: { DEFAULT: '0', none: '0', sm: '0', md: '0', lg: '0', xl: '0', '2xl': '0', full: '0' },
+      },
+    },
+  };
+</script>
+<style>
+  body { font-family: 'Inter', sans-serif; background: #F7F3EA; color: #181818; -webkit-font-smoothing: antialiased; }
+  .display { font-family: 'Space Grotesk', system-ui, sans-serif; }
+  .mono { font-family: 'JetBrains Mono', monospace; }
+  .serif { font-family: 'Source Serif 4', Georgia, serif; }
+  h1, h2, h3 { font-family: 'Source Serif 4', 'Source Serif Pro', Georgia, serif; font-weight: 900; text-transform: uppercase; letter-spacing: -0.01em; line-height: 0.95; }
+  h1 { letter-spacing: -0.02em; line-height: 0.94; }
+  button, input, textarea, select, .card, [class*="rounded"] { border-radius: 0 !important; }
+  .circle { border-radius: 9999px !important; }
+  ::selection { background: #3EB8C8; color: #181818; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  .fade-in { animation: fadeIn 0.3s ease-out; }
+  @keyframes spin-slow { to { transform: rotate(360deg); } }
+  .spin-slow { animation: spin-slow 1.2s linear infinite; }
+  textarea { resize: vertical; }
+</style>
+</head>
+<body>
+<div class="max-w-2xl mx-auto px-5 pb-24">
+
+  <!-- Header -->
+  <header class="flex items-center gap-3 py-6 border-b-2 border-ink mb-10">
+    <span class="display font-black text-xl tracking-tight">SN</span>
+    <span class="w-px h-6 bg-ink/30"></span>
+    <span class="mono text-xs uppercase tracking-[0.25em] text-ink/70 font-semibold">Quick Encrypt</span>
+  </header>
+
+  <!-- FORM VIEW -->
+  <div id="formView">
+    <div class="mono text-[11px] text-accent uppercase tracking-[0.25em] font-semibold mb-3">Encrypted in your browser</div>
+    <h1 class="text-5xl mb-4">Lock a secret.</h1>
+    <p class="serif text-lg text-ink/75 leading-snug mb-8 max-w-xl">
+      Label what each secret is, paste the value, and hit encrypt. Everything is scrambled on your device before it's sent &mdash; only the Strategy Ninjas team can read it. Add as many as you need.
+    </p>
+
+    <div id="rows" class="space-y-5"></div>
+
+    <button id="addRow" type="button"
+      class="mt-5 mono text-xs uppercase tracking-widest font-semibold text-accent border-2 border-accent px-4 py-2 hover:bg-accent hover:text-ink transition-colors">
+      + Add another secret
+    </button>
+
+    <div id="formError" class="hidden mt-6 bg-[#FBEAEA] border-2 border-[#C0392B] text-[#8E2A1E] text-sm p-3"></div>
+
+    <button id="submitBtn" type="button"
+      class="mt-8 w-full display font-bold uppercase tracking-widest text-lg bg-ink text-paper py-4 shadow-brut hover:shadow-brut-hover hover:-translate-y-0.5 transition-all disabled:opacity-40 disabled:shadow-none disabled:translate-y-0 flex items-center justify-center gap-3">
+      <span id="submitLabel">Encrypt &amp; Send &rarr;</span>
+    </button>
+
+    <p class="mono text-[11px] text-ink/50 mt-5 leading-relaxed">
+      🔒 Each value is encrypted with the Strategy Ninjas public key (RSA-OAEP, SHA-256) before it leaves this page. The labels stay in plain text so the team knows what each secret is. We never see the raw values.
+    </p>
+  </div>
+
+  <!-- DONE VIEW -->
+  <div id="doneView" class="hidden fade-in">
+    <div class="w-16 h-16 bg-ink circle flex items-center justify-center mx-auto mt-6 mb-6">
+      <span class="text-accent text-3xl">✓</span>
+    </div>
+    <h1 class="text-4xl text-center mb-3">Encrypted &amp; sent.</h1>
+    <p class="serif text-lg text-ink/75 text-center leading-snug mb-8 max-w-lg mx-auto">
+      Your secrets are locked and on their way to the Strategy Ninjas team. Here's the encrypted document &mdash; the raw values are unreadable without our private key.
+    </p>
+
+    <div class="bg-accentSoft border-2 border-ink p-4">
+      <div class="mono text-[11px] text-ink/70 uppercase tracking-widest font-semibold mb-2">Encrypted document</div>
+      <textarea id="envelopeOut" readonly class="w-full h-56 mono text-[11px] leading-relaxed bg-card border-2 border-ink p-3 text-ink/80"></textarea>
+      <div class="flex flex-wrap gap-3 mt-3">
+        <button id="copyBtn" type="button" class="mono text-xs uppercase tracking-widest font-semibold border-2 border-ink px-4 py-2 hover:bg-ink hover:text-paper transition-colors">Copy</button>
+        <button id="downloadBtn" type="button" class="mono text-xs uppercase tracking-widest font-semibold border-2 border-ink px-4 py-2 hover:bg-ink hover:text-paper transition-colors">Download .txt</button>
+        <button id="againBtn" type="button" class="mono text-xs uppercase tracking-widest font-semibold border-2 border-accent text-accent px-4 py-2 hover:bg-accent hover:text-ink transition-colors ml-auto">Encrypt another →</button>
+      </div>
+    </div>
+    <p id="driveNote" class="mono text-[11px] text-ink/50 mt-5 text-center"></p>
+  </div>
+
+</div>
+
+<script>
+// ============================================================================
+// CONFIG  (identical key + endpoint to the onboarding tool — Tess decrypts the
+// ENC: values exactly as she does today. Nothing about her process changes.)
+// ============================================================================
+const BACKEND_URL = "https://script.google.com/macros/s/AKfycbwlDjUnvf-2SSI-vVdIUaWNDHyC3z4OLWmbzFPWwLQx9PXTp59s5q1pgFX4eaRt8aZY/exec";
+const KEY_ID = "sn-intake-2026-07";
+const PUBLIC_KEY_SPKI_B64 = "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAqdrQfCwJpaHbHe54lugac03rbMCT6Vtu+ZKWtyA9J9ynWxua5qPlv8uzVsmugnlgE+0Zt3NgqOELwUcfsxRoClnY6hvv11NubZrzdV94W6kpvJ9sp7jBF3YwFVOK29hbNZVZcgm3SuIS1Uhu85rnsbfXvGy+pMONCBlWVzo3xWidxTyeszDFxCnfhJ1e/Q+rE1Ti2xD8Oe5WtI/ruCAI03Bk8XBrlERtDN4e3UX1uzaQeMT5jo9y+l97zSOVIkVUuzi85qN6PGIBpAAyqjy+f4tfk6G8QgapuXyaJI+KE55KLu0RY3DZssx3hVQGTCZ1a7ewT6f90kGVi6WyT49+wQIDAQAB";
+
+// RSA-2048 + OAEP(SHA-256) max plaintext = 256 - 2*32 - 2 = 190 bytes.
+const MAX_SECRET_BYTES = 190;
+
+// ============================================================================
+// ENCRYPTION (Web Crypto, RSA-OAEP SHA-256) — same as the onboarding tool.
+// ============================================================================
+function b64ToBytes(b64) {
+  const bin = atob(b64);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return bytes;
+}
+function bytesToB64(bytes) {
+  let bin = "";
+  const arr = new Uint8Array(bytes);
+  for (let i = 0; i < arr.length; i++) bin += String.fromCharCode(arr[i]);
+  return btoa(bin);
+}
+let _pubKeyPromise = null;
+function getPublicKey() {
+  if (!_pubKeyPromise) {
+    _pubKeyPromise = crypto.subtle.importKey(
+      "spki", b64ToBytes(PUBLIC_KEY_SPKI_B64),
+      { name: "RSA-OAEP", hash: "SHA-256" }, false, ["encrypt"]
+    );
+  }
+  return _pubKeyPromise;
+}
+async function encryptField(plaintext) {
+  const key = await getPublicKey();
+  const data = new TextEncoder().encode(plaintext);
+  const ct = await crypto.subtle.encrypt({ name: "RSA-OAEP" }, key, data);
+  return bytesToB64(ct);
+}
+
+// ============================================================================
+// UI
+// ============================================================================
+const byteLen = (s) => new TextEncoder().encode(s).length;
+
+const rowsEl = document.getElementById("rows");
+const formError = document.getElementById("formError");
+
+function makeRow() {
+  const row = document.createElement("div");
+  row.className = "secret-row border-l-2 border-accent pl-4";
+  row.innerHTML = `
+    <div class="flex items-center justify-between mb-1">
+      <label class="mono text-[11px] uppercase tracking-widest font-semibold text-ink/70">What is this?</label>
+      <button type="button" class="remove-btn mono text-[11px] text-ink/40 hover:text-[#C0392B] transition-colors">✕ remove</button>
+    </div>
+    <input type="text" class="label-in w-full bg-card border-2 border-ink px-3 py-2 text-sm mb-2"
+      placeholder="e.g. Gmail app password, Stripe key, WiFi login" />
+    <div class="flex items-center justify-between mb-1">
+      <label class="mono text-[11px] uppercase tracking-widest font-semibold text-ink/70">Secret value</label>
+      <span class="counter mono text-[11px] text-ink/40">0 / ${MAX_SECRET_BYTES}</span>
+    </div>
+    <textarea rows="2" class="secret-in w-full bg-card border-2 border-ink px-3 py-2 text-sm mono"
+      placeholder="Paste the secret here"></textarea>
+  `;
+  const secret = row.querySelector(".secret-in");
+  const counter = row.querySelector(".counter");
+  secret.addEventListener("input", () => {
+    const n = byteLen(secret.value);
+    counter.textContent = n + " / " + MAX_SECRET_BYTES;
+    const over = n > MAX_SECRET_BYTES;
+    counter.classList.toggle("text-[#C0392B]", over);
+    counter.classList.toggle("font-semibold", over);
+    secret.classList.toggle("border-[#C0392B]", over);
+    secret.classList.toggle("border-ink", !over);
+  });
+  row.querySelector(".remove-btn").addEventListener("click", () => {
+    row.remove();
+    syncRemoveButtons();
+  });
+  return row;
+}
+
+function syncRemoveButtons() {
+  const rows = rowsEl.querySelectorAll(".secret-row");
+  rows.forEach(r => {
+    r.querySelector(".remove-btn").style.visibility = rows.length > 1 ? "visible" : "hidden";
+  });
+}
+
+function addRow() {
+  rowsEl.appendChild(makeRow());
+  syncRemoveButtons();
+}
+
+document.getElementById("addRow").addEventListener("click", addRow);
+addRow(); // start with one
+
+// ---- submit ----------------------------------------------------------------
+function pad2(n) { return String(n).padStart(2, "0"); }
+function stamp() {
+  const d = new Date();
+  return d.getFullYear() + pad2(d.getMonth() + 1) + pad2(d.getDate()) + "-" +
+         pad2(d.getHours()) + pad2(d.getMinutes()) + pad2(d.getSeconds());
+}
+function centerLine(t) {
+  const pad = Math.max(0, Math.floor((72 - t.length) / 2));
+  return " ".repeat(pad) + t;
+}
+function buildEnvelope(items) {
+  const HEAVY = "=".repeat(72), LIGHT = "-".repeat(72);
+  const L = [];
+  L.push(HEAVY, centerLine("SN QUICK ENCRYPT"), HEAVY, "");
+  L.push("  Schema:            quick_encrypt_v1");
+  L.push("  Encryption Key ID: " + KEY_ID);
+  L.push("  Captured:          " + new Date().toString());
+  L.push("  Secrets:           " + items.length);
+  L.push("", LIGHT, "  SECRETS  (each value RSA-OAEP encrypted, base64)", LIGHT, "");
+  items.forEach((it, i) => {
+    L.push("  [" + (i + 1) + "]  " + (it.label || "(no label)"));
+    L.push("       ENC:" + it.enc);
+    L.push("");
+  });
+  L.push(HEAVY, "  Decrypt with the Strategy Ninjas private key (same as intake).", HEAVY);
+  return L.join("\n");
+}
+
+let lastEnvelope = "";
+let lastFilename = "";
+
+async function submit() {
+  const btn = document.getElementById("submitBtn");
+  formError.classList.add("hidden");
+
+  const rows = [...rowsEl.querySelectorAll(".secret-row")];
+  const collected = [];
+  for (const r of rows) {
+    const label = r.querySelector(".label-in").value.trim();
+    const secret = r.querySelector(".secret-in").value;
+    if (!secret.trim()) continue; // skip empty rows
+    if (byteLen(secret) > MAX_SECRET_BYTES) {
+      return showError(`One secret is too long (${byteLen(secret)} bytes, max ${MAX_SECRET_BYTES}). Split it across two rows.`);
+    }
+    collected.push({ label, secret });
+  }
+  if (collected.length === 0) {
+    return showError("Add at least one secret value before encrypting.");
+  }
+
+  btn.disabled = true;
+  document.getElementById("submitLabel").innerHTML = 'Encrypting <span class="inline-block spin-slow">◠</span>';
+
+  try {
+    const items = [];
+    for (const c of collected) {
+      items.push({ label: c.label, enc: await encryptField(c.secret) });
+    }
+    const envelope = buildEnvelope(items);
+    const filename = "quick-encrypt-" + stamp() + ".txt";
+    lastEnvelope = envelope;
+    lastFilename = filename;
+
+    // Routes through the backend's existing file-save path — no redeploy, no schema change.
+    // text/plain avoids a CORS preflight; Apps Script parses the body as JSON.
+    await fetch(BACKEND_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({ txtFilename: filename, txtContent: envelope }),
+    });
+
+    if (typeof confetti === "function") {
+      confetti({ particleCount: 60, spread: 70, startVelocity: 42, gravity: 0.9, ticks: 200, origin: { x: 0.5, y: 0.4 }, colors: ["#3EB8C8", "#181818", "#BBB469", "#F7F3EA"] });
+    }
+    showDone(envelope, filename, items.length);
+  } catch (e) {
+    document.getElementById("submitLabel").innerHTML = "Encrypt &amp; Send &rarr;";
+    btn.disabled = false;
+    showError("Something went wrong: " + e + ". Please try again.");
+  }
+}
+
+function showError(msg) {
+  formError.textContent = msg;
+  formError.classList.remove("hidden");
+  const btn = document.getElementById("submitBtn");
+  btn.disabled = false;
+  document.getElementById("submitLabel").innerHTML = "Encrypt &amp; Send &rarr;";
+  formError.scrollIntoView({ behavior: "smooth", block: "center" });
+}
+
+function showDone(envelope, filename, count) {
+  document.getElementById("formView").classList.add("hidden");
+  const done = document.getElementById("doneView");
+  done.classList.remove("hidden");
+  document.getElementById("envelopeOut").value = envelope;
+  document.getElementById("driveNote").textContent =
+    count + (count === 1 ? " secret" : " secrets") + " saved as " + filename + " for the SN team.";
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+document.getElementById("submitBtn").addEventListener("click", submit);
+
+document.getElementById("copyBtn").addEventListener("click", async () => {
+  try { await navigator.clipboard.writeText(lastEnvelope); flash("copyBtn", "Copied ✓"); }
+  catch { const t = document.getElementById("envelopeOut"); t.select(); document.execCommand("copy"); flash("copyBtn", "Copied ✓"); }
+});
+document.getElementById("downloadBtn").addEventListener("click", () => {
+  const blob = new Blob([lastEnvelope], { type: "text/plain" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = lastFilename || "quick-encrypt.txt";
+  a.click();
+  URL.revokeObjectURL(a.href);
+});
+document.getElementById("againBtn").addEventListener("click", () => {
+  rowsEl.innerHTML = "";
+  addRow();
+  document.getElementById("doneView").classList.add("hidden");
+  const fv = document.getElementById("formView");
+  fv.classList.remove("hidden");
+  const btn = document.getElementById("submitBtn");
+  btn.disabled = false;
+  document.getElementById("submitLabel").innerHTML = "Encrypt &amp; Send &rarr;";
+  window.scrollTo({ top: 0, behavior: "smooth" });
+});
+
+function flash(id, text) {
+  const el = document.getElementById(id);
+  const prev = el.textContent;
+  el.textContent = text;
+  setTimeout(() => { el.textContent = prev; }, 1500);
+}
+</script>
+</body>
+</html>
