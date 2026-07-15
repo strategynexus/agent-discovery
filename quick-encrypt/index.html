@@ -242,7 +242,7 @@ function buildEnvelope(items) {
   L.push("", LIGHT, "  SECRETS  (each value RSA-OAEP encrypted, base64)", LIGHT, "");
   items.forEach((it, i) => {
     L.push("  [" + (i + 1) + "]  " + (it.label || "(no label)"));
-    L.push("       ENC:" + it.enc);
+    L.push("       ENC:" + it.enc_value);
     L.push("");
   });
   L.push(HEAVY, "  Decrypt with the Strategy Ninjas private key (same as intake).", HEAVY);
@@ -277,19 +277,32 @@ async function submit() {
   try {
     const items = [];
     for (const c of collected) {
-      items.push({ label: c.label, enc: await encryptField(c.secret) });
+      items.push({ label: c.label, enc_value: await encryptField(c.secret) });
     }
     const envelope = buildEnvelope(items);
     const filename = "quick-encrypt-" + stamp() + ".txt";
     lastEnvelope = envelope;
     lastFilename = filename;
 
-    // Routes through the backend's existing file-save path — no redeploy, no schema change.
+    // Structured payload -> backend writes .txt + .json and emails the team.
+    // txtFilename/txtContent are included as a fallback so the file still saves
+    // even if the quick_encrypt_v1 branch hasn't been deployed to the backend yet.
     // text/plain avoids a CORS preflight; Apps Script parses the body as JSON.
     await fetch(BACKEND_URL, {
       method: "POST",
       headers: { "Content-Type": "text/plain;charset=utf-8" },
-      body: JSON.stringify({ txtFilename: filename, txtContent: envelope }),
+      body: JSON.stringify({
+        kind: "quick_encrypt_v1",
+        schema_version: "quick_encrypt_v1",
+        encryption_key_id: KEY_ID,
+        filename: filename,
+        captured_at: new Date().toString(),
+        count: items.length,
+        secrets: items,
+        envelope_txt: envelope,
+        txtFilename: filename,
+        txtContent: envelope,
+      }),
     });
 
     if (typeof confetti === "function") {
