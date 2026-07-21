@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Strategy Ninjas — Agent Launch</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700;900&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Source+Serif+4:ital,wght@0,400;0,600;0,700;0,900;1,400&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+<script>
+  tailwind.config = {
+    corePlugins: { preflight: true },
+    theme: {
+      extend: {
+        fontFamily: {
+          sans: ['Inter', 'system-ui', 'sans-serif'],
+          display: ['"Space Grotesk"', 'system-ui', 'sans-serif'],
+          serif: ['"Source Serif 4"', 'Georgia', 'serif'],
+          mono: ['JetBrains Mono', 'monospace'],
+        },
+        colors: {
+          ink: '#181818', paper: '#F7F3EA', card: '#FFFFFF', darkCard: '#101010',
+          accent: '#3EB8C8', accentSoft: '#E8F6F8', gold: '#BBB469',
+        },
+        boxShadow: {
+          brut: '6px 6px 0 0 #181818', 'brut-sm': '4px 4px 0 0 #181818',
+          'brut-lg': '14px 14px 0 0 #181818', 'brut-hover': '8px 8px 0 0 #181818',
+        },
+        borderRadius: { DEFAULT: '0', none: '0', sm: '0', md: '0', lg: '0', xl: '0', '2xl': '0', full: '0' },
+      },
+    },
+  };
+</script>
+<style>
+  body { font-family: 'Inter', sans-serif; background: #F7F3EA; color: #181818; -webkit-font-smoothing: antialiased; }
+  .display { font-family: 'Space Grotesk', system-ui, sans-serif; }
+  .mono { font-family: 'JetBrains Mono', monospace; }
+  .serif { font-family: 'Source Serif 4', Georgia, serif; }
+  h1, h2, h3 { font-family: 'Source Serif 4', Georgia, serif; font-weight: 900; text-transform: uppercase; letter-spacing: -0.01em; line-height: 0.95; }
+  h1 { letter-spacing: -0.02em; line-height: 0.94; }
+  button, input, textarea, select, .card, [class*="rounded"] { border-radius: 0 !important; }
+  .circle { border-radius: 9999px !important; }
+  input[type=checkbox] { accent-color: #3EB8C8; }
+  ::selection { background: #3EB8C8; color: #181818; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  .fade-in { animation: fadeIn 0.3s ease-out; }
+  @keyframes scaleIn { 0% { transform: scale(0.3); opacity: 0; } 60% { transform: scale(1.1); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
+  .scale-in { animation: scaleIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); }
+  @keyframes spin-slow { to { transform: rotate(360deg); } }
+  .spin-slow { animation: spin-slow 1.2s linear infinite; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useMemo } = React;
+
+// ============================================================================
+// CONFIG
+// ============================================================================
+const BACKEND_URL = "https://script.google.com/macros/s/AKfycbwlDjUnvf-2SSI-vVdIUaWNDHyC3z4OLWmbzFPWwLQx9PXTp59s5q1pgFX4eaRt8aZY/exec";
+const SCHEMA_VERSION = "launch_v1";
+
+const PAYMENT_URL = "https://link.fastpaydirect.com/payment-link/6a221e5f71a0aa761e4631af";
+const SUPPORT_EMAIL = "info@thestrategyninjas.com";
+const PFP_FOLDER_URL = "https://drive.google.com/drive/folders/1cFjXQI21bu1PAIi60LWj_sEsIJ_sNB7g";
+
+// Feature sheets living in Drive (ids survive being moved into a Launches folder).
+const SHEETS = {
+  "Chief of Staff":          "https://drive.google.com/file/d/1TM7xYFUuKNct87K7oAN68QMi_6MUUyrx/view",
+  "Transaction Coordinator": "https://drive.google.com/file/d/1GdHpeMgOoYxGmJOC-jljjqW88BPLcScB/view",
+  "Other":                   "https://drive.google.com/file/d/1TM7xYFUuKNct87K7oAN68QMi_6MUUyrx/view",
+};
+
+const AGENT_TYPES = ["Chief of Staff", "Transaction Coordinator", "Other"];
+
+// ============================================================================
+// PROMPT TEMPLATES  (filled from the setup bar)
+// ============================================================================
+
+const notionPrompt = (type, label) => {
+  // "Other" reuses the COS build, worded generically — every agent ships with the COS stack.
+  const title = type === "Transaction Coordinator" ? "AI Transaction Coordinator" : (type === "Chief of Staff" ? "AI Chief of Staff" : "AI agent");
+  if (type === "Transaction Coordinator") {
+    return `Notion is connected. Please build my ${title} launch dashboard now.
+
+Use your Notion Dashboard, Scheduled Automations, Morning Routine, EOD Routine, and Connection skills.
+
+Create a polished TC command center for active transactions, deadlines, document checklists, client/vendor follow-ups, handoffs, daily TC briefings, EOD summaries, pipeline review, activity logs, and connected tools.
+
+Use the tools and connections already available to you, make smart defaults where needed, and build a complete first version I can start using immediately.
+
+Also create and verify these automations:
+- Daily TC Briefing: 8:00am daily
+- EOD TC Summary: 4:30pm daily
+- Weekly Pipeline Review: Friday at 2:00pm, or the closest supported schedule pattern
+
+Do not ask setup questions unless something is truly blocked. Build it, verify it, and send me the Notion link plus a short summary of what you created.`;
+  }
+  return `Notion is connected. Please build my ${title} launch dashboard now.
+
+Use your Notion Dashboard, Morning Routine, EOD Routine, Scheduled Automations, and Connection skills.
+
+Create a polished Notion HQ for daily briefings, EOD summaries, priorities, projects, handoffs, follow-ups, activity logs, and connected tools.
+
+Use the tools and connections already available to you, make smart defaults where needed, and build a complete first version I can start using immediately.
+
+Also create and verify these automations:
+- Morning Briefing: 7:00am daily
+- EOD Summary: 5:30pm daily
+- Weekly Review: Friday at 3:00pm, or the closest supported schedule pattern
+
+Do not ask setup questions unless something is truly blocked. Build it, verify it, and send me the Notion link plus a short summary of what you created.`;
+};
+
+// ============================================================================
+// SMALL PIECES
+// ============================================================================
+
+const inputClass = "w-full px-4 py-3 bg-card border-2 border-ink/25 focus:border-ink focus:outline-none focus:shadow-brut-sm transition-all text-sm placeholder:text-ink/30";
+
+function PromptBox({ text }) {
+  const [copied, setCopied] = useState(false);
+  const copy = async () => {
+    try { await navigator.clipboard.writeText(text); }
+    catch (e) {
+      const ta = document.createElement("textarea");
+      ta.value = text; document.body.appendChild(ta); ta.select();
+      document.execCommand("copy"); document.body.removeChild(ta);
+    }
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1600);
+  };
+  return (
+    <div className="border-2 border-ink bg-card">
+      <div className="p-4 mono text-[12px] leading-relaxed text-ink/85 whitespace-pre-wrap max-h-72 overflow-y-auto">{text}</div>
+      <button
+        onClick={copy}
+        className={`w-full display font-black text-xs uppercase tracking-widest border-t-2 border-ink px-4 py-3 transition-all ${copied ? "bg-accent text-ink" : "bg-ink text-accent hover:bg-ink/90"}`}
+      >
+        {copied ? "✓ Copied — paste it to your agent" : "⧉ Copy this message"}
+      </button>
+    </div>
+  );
+}
+
+function Step({ n, title, blurb, done, onToggle, children }) {
+  return (
+    <section className={`border-2 border-ink mb-5 transition-all ${done ? "bg-accentSoft" : "bg-card shadow-brut"}`}>
+      <header className="flex items-start gap-3 p-5 border-b-2 border-ink/10">
+        <div className={`w-9 h-9 flex-shrink-0 flex items-center justify-center display font-black circle border-2 border-ink ${done ? "bg-accent text-ink" : "bg-ink text-accent"}`}>
+          {done ? "✓" : n}
+        </div>
+        <div className="flex-1 min-w-0">
+          <h2 className="text-xl md:text-2xl">{title}</h2>
+          {blurb && <p className="text-sm text-ink/70 mt-1.5 leading-relaxed">{blurb}</p>}
+        </div>
+      </header>
+      <div className="p-5">
+        {children}
+        <label className="flex items-center gap-2.5 mt-5 cursor-pointer select-none">
+          <input type="checkbox" checked={done} onChange={onToggle} className="w-5 h-5 flex-shrink-0" />
+          <span className="mono text-[11px] uppercase tracking-widest font-semibold text-ink/60">Done — next step</span>
+        </label>
+      </div>
+    </section>
+  );
+}
+
+function Header() {
+  return (
+    <header className="border-b-2 border-ink bg-paper sticky top-0 z-40">
+      <div className="max-w-3xl mx-auto px-6 py-4 flex items-center gap-3">
+        <img src="../sn-logo.png" alt="Strategy Ninjas" className="h-9 w-auto block flex-shrink-0" />
+        <div className="mono text-[10px] text-ink/60 uppercase tracking-widest font-semibold hidden sm:block">Agent Launch</div>
+      </div>
+    </header>
+  );
+}
+
+// ============================================================================
+// APP
+// ============================================================================
+
+const STEP_IDS = ["hello", "notionprep", "connect", "spin", "dashboard", "face", "features", "billing", "support"];
+
+function App() {
+  const [setup, setSetup] = useState({
+    clientName: "", clientEmail: "", agentName: "", agentType: "",
+    emailProvider: "Gmail", calProvider: "Google Calendar",
+  });
+  const [generated, setGenerated] = useState(false);
+  const [done, setDone] = useState({});
+  const [conn, setConn] = useState({ email: false, calendar: false, notion: false });
+  const [initials, setInitials] = useState("");
+  const [phase, setPhase] = useState("run"); // run | submitting | complete | error
+  const [errorMsg, setErrorMsg] = useState("");
+
+  const up = (patch) => setSetup(s => ({ ...s, ...patch }));
+  const toggle = (id) => setDone(d => ({ ...d, [id]: !d[id] }));
+
+  const setupOk = setup.clientName.trim().length >= 2 && setup.agentName.trim().length >= 2 &&
+                  /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(setup.clientEmail.trim()) &&
+                  setup.agentType && setup.emailProvider.trim() && setup.calProvider.trim();
+
+  const agent = setup.agentName.trim() || "your agent";
+  const client = setup.clientName.trim() || "there";
+  const email = setup.emailProvider.trim() || "email";
+  const cal = setup.calProvider.trim() || "calendar";
+
+  const prompts = useMemo(() => ({
+    hello: `Hey ${agent}, this is ${client} — nice to finally meet you!`,
+    connect: `Please run your SN Connection Protocol for ${email}, ${cal}, and Notion. Send me all the connection links at once so I can sign in to everything in one go.`,
+    spin: `I'm connected now. Please read through my inbox and tell me what's important today, then check my calendar and tell me what my week looks like.`,
+    dashboard: notionPrompt(setup.agentType),
+  }), [agent, client, email, cal, setup.agentType]);
+
+  const doneCount = STEP_IDS.filter(id => done[id]).length;
+  const allDone = doneCount === STEP_IDS.length;
+  const canSign = initials.trim().length >= 2;
+
+  const generate = () => {
+    if (!setupOk) return;
+    setGenerated(true);
+    setTimeout(() => {
+      const el = document.getElementById("runofshow");
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 60);
+  };
+
+  const submit = async () => {
+    if (!canSign || phase === "submitting") return;
+    setPhase("submitting"); setErrorMsg("");
+    try {
+      const today = new Date().toISOString().slice(0, 10).replace(/-/g, "");
+      const slug = (s) => (s || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+      const payload = {
+        kind: "launch_v1",
+        schema_version: SCHEMA_VERSION,
+        filename: `Launch-${slug(setup.clientName) || "client"}_${slug(setup.agentName) || "agent"}_${today}.txt`,
+        clientName: setup.clientName.trim(),
+        clientEmail: setup.clientEmail.trim(),
+        agentName: setup.agentName.trim(),
+        agentType: setup.agentType,
+        emailProvider: email,
+        calProvider: cal,
+        connections: conn,
+        stepsCompleted: STEP_IDS.filter(id => done[id]),
+        stepsTotal: STEP_IDS.length,
+        initials: initials.trim().toUpperCase(),
+        capturedAt: new Date().toString(),
+      };
+      await fetch(BACKEND_URL, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify(payload),
+      });
+      if (typeof confetti === "function") {
+        confetti({ particleCount: 120, spread: 90, startVelocity: 48, gravity: 0.9, ticks: 240, origin: { x: 0.5, y: 0.5 }, colors: ["#3EB8C8", "#181818", "#BBB469", "#F7F3EA"] });
+      }
+      setPhase("complete");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } catch (e) {
+      setErrorMsg(String(e)); setPhase("error");
+    }
+  };
+
+  if (phase === "complete") {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Header />
+        <main className="flex-1 flex flex-col items-center px-6 py-20">
+          <div className="max-w-lg text-center fade-in">
+            <div className="w-20 h-20 bg-ink text-accent border-2 border-ink shadow-brut mx-auto mb-8 flex items-center justify-center display font-black text-4xl scale-in circle">✓</div>
+            <div className="mono text-xs text-accent uppercase tracking-widest font-semibold mb-3">Launched</div>
+            <h1 className="text-4xl mb-4">{agent} is live.</h1>
+            <p className="text-ink/75 text-lg leading-relaxed mb-8">
+              Nice work, {client}. Your agent is connected, your dashboard is built, and you're good to go. Your confirmation and full feature sheet are on their way to <span className="font-semibold text-ink">{setup.clientEmail.trim()}</span>.
+            </p>
+            <div className="bg-card border-2 border-ink shadow-brut p-6 text-left">
+              <div className="mono text-xs text-ink/60 uppercase tracking-widest font-semibold mb-3">From here</div>
+              <ul className="text-sm text-ink/80 space-y-2 list-disc list-inside">
+                <li>Just talk to {agent} in Telegram like you would a teammate.</li>
+                <li>Your morning brief and EOD summary run automatically.</li>
+                <li>Need help? Email <a href={`mailto:${SUPPORT_EMAIL}`} className="underline hover:text-accent">{SUPPORT_EMAIL}</a>.</li>
+              </ul>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen flex flex-col">
+      <Header />
+
+      {generated && (
+        <div className="sticky top-[65px] z-30 bg-paper border-b-2 border-ink/10">
+          <div className="max-w-3xl mx-auto px-6 py-2.5 flex items-center gap-3">
+            <div className="flex-1 h-2 bg-ink/10 border border-ink/20">
+              <div className="h-full bg-accent transition-all" style={{ width: `${(doneCount / STEP_IDS.length) * 100}%` }}></div>
+            </div>
+            <div className="mono text-[11px] font-semibold text-ink/60 whitespace-nowrap">{doneCount} / {STEP_IDS.length}</div>
+          </div>
+        </div>
+      )}
+
+      <main className="flex-1 w-full max-w-3xl mx-auto px-6 py-10 md:py-14">
+        <div className="mb-10">
+          <div className="mono text-xs text-accent uppercase tracking-widest font-semibold mb-3 flex items-center gap-2">
+            <span className="inline-block w-6 h-px bg-accent"></span> Agent Launch
+          </div>
+          <h1 className="text-4xl md:text-6xl mb-4">Launch day.</h1>
+          <p className="text-ink/75 text-base md:text-lg leading-relaxed">
+            We'll get your agent connected to your tools, take it for a spin, and build your dashboard — together, right now. Start by telling us who we're launching.
+          </p>
+        </div>
+
+        {/* SETUP */}
+        <section className="border-2 border-ink bg-card shadow-brut p-6 mb-10">
+          <div className="mono text-xs text-ink/60 uppercase tracking-widest font-semibold mb-5">Quick setup</div>
+          <div className="grid sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block mono text-[11px] font-semibold uppercase tracking-widest text-ink/80 mb-2">Your first name <span className="text-accent">*</span></label>
+              <input type="text" value={setup.clientName} onChange={e => up({ clientName: e.target.value })} placeholder="Mike" className={inputClass} />
+            </div>
+            <div>
+              <label className="block mono text-[11px] font-semibold uppercase tracking-widest text-ink/80 mb-2">Your agent's name <span className="text-accent">*</span></label>
+              <input type="text" value={setup.agentName} onChange={e => up({ agentName: e.target.value })} placeholder="Atlas" className={inputClass} />
+            </div>
+          </div>
+
+          <div className="mt-5">
+            <label className="block mono text-[11px] font-semibold uppercase tracking-widest text-ink/80 mb-2">Your email <span className="text-accent">*</span></label>
+            <input type="email" value={setup.clientEmail} onChange={e => up({ clientEmail: e.target.value })} placeholder="mike@company.com" className={inputClass} />
+            <p className="text-xs text-ink/50 mt-1.5">We'll send your launch confirmation and feature sheet here.</p>
+          </div>
+
+          <div className="mt-5">
+            <label className="block mono text-[11px] font-semibold uppercase tracking-widest text-ink/80 mb-2">Agent type <span className="text-accent">*</span></label>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              {AGENT_TYPES.map(t => (
+                <button key={t} type="button" onClick={() => up({ agentType: t })}
+                  className={`text-sm px-3 py-3 border-2 transition-all font-medium ${setup.agentType === t ? "bg-ink text-paper border-ink" : "bg-card border-ink/25 hover:border-ink hover:bg-accentSoft"}`}>
+                  {t}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="grid sm:grid-cols-2 gap-4 mt-5">
+            <div>
+              <label className="block mono text-[11px] font-semibold uppercase tracking-widest text-ink/80 mb-2">Your email provider <span className="text-accent">*</span></label>
+              <input type="text" value={setup.emailProvider} onChange={e => up({ emailProvider: e.target.value })} placeholder="Gmail" className={inputClass} />
+            </div>
+            <div>
+              <label className="block mono text-[11px] font-semibold uppercase tracking-widest text-ink/80 mb-2">Your calendar <span className="text-accent">*</span></label>
+              <input type="text" value={setup.calProvider} onChange={e => up({ calProvider: e.target.value })} placeholder="Google Calendar" className={inputClass} />
+            </div>
+          </div>
+          <p className="text-xs text-ink/50 mt-2">Notion is included automatically.</p>
+
+          <button onClick={generate} disabled={!setupOk}
+            className="mt-6 w-full display font-black text-sm uppercase tracking-widest bg-accent text-ink border-2 border-ink px-6 py-4 shadow-brut hover:shadow-brut-hover hover:-translate-x-0.5 hover:-translate-y-0.5 disabled:bg-ink/10 disabled:text-ink/30 disabled:shadow-none disabled:cursor-not-allowed disabled:hover:translate-x-0 disabled:hover:translate-y-0 transition-all">
+            {generated ? "↻ Regenerate my prompts" : "Generate my prompts →"}
+          </button>
+        </section>
+
+        {!generated && (
+          <p className="text-center text-sm text-ink/45 mb-10">Fill in the setup above and hit generate — your walkthrough appears here.</p>
+        )}
+
+        {generated && (
+          <div id="runofshow" className="fade-in">
+
+            <Step n={1} title={`Say hi to ${agent}`} done={!!done.hello} onToggle={() => toggle("hello")}
+              blurb="Open Telegram and send this to your agent. This wakes it up and starts its first session.">
+              <PromptBox text={prompts.hello} />
+            </Step>
+
+            <Step n={2} title="Get Notion ready" done={!!done.notionprep} onToggle={() => toggle("notionprep")}
+              blurb="Quick prep before we connect anything — this takes 20 seconds and saves a headache.">
+              <ul className="text-sm text-ink/80 space-y-2.5 list-disc list-inside">
+                <li>Open <a href="https://notion.so" target="_blank" rel="noopener noreferrer" className="underline hover:text-accent font-semibold">notion.so</a> and make sure you're signed in.</li>
+                <li><span className="font-semibold">If your Notion is brand new and empty</span>, create one blank page and name it <span className="mono bg-accentSoft px-1.5 py-0.5 border border-ink/20">AI HQ</span>. Your agent needs a home to build in.</li>
+                <li>In the next step, when you connect Notion, make sure you <span className="font-semibold">grant access to that page</span>.</li>
+              </ul>
+            </Step>
+
+            <Step n={3} title="Connect your tools" done={!!done.connect} onToggle={() => toggle("connect")}
+              blurb={`One message pulls all three connection links at once — ${email}, ${cal}, and Notion. Sign in to each, then tick them off.`}>
+              <PromptBox text={prompts.connect} />
+              <div className="mt-4 border-2 border-ink/15 bg-paper p-4">
+                <div className="mono text-[11px] uppercase tracking-widest font-semibold text-ink/60 mb-3">Signed in to…</div>
+                <div className="space-y-2.5">
+                  {[["email", email], ["calendar", cal], ["notion", "Notion"]].map(([k, label]) => (
+                    <label key={k} className="flex items-center gap-2.5 cursor-pointer select-none">
+                      <input type="checkbox" checked={conn[k]} onChange={() => setConn(c => ({ ...c, [k]: !c[k] }))} className="w-5 h-5 flex-shrink-0" />
+                      <span className="text-sm text-ink/80">{label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </Step>
+
+            <Step n={4} title="Take it for a spin" done={!!done.spin} onToggle={() => toggle("spin")}
+              blurb="This proves the connections work — and gives your agent real context about your week before it builds anything.">
+              <PromptBox text={prompts.spin} />
+            </Step>
+
+            <Step n={5} title="Build your dashboard" done={!!done.dashboard} onToggle={() => toggle("dashboard")}
+              blurb="Now that it knows what's going on in your world, your agent builds your Notion HQ. This one takes a few minutes to run.">
+              <PromptBox text={prompts.dashboard} />
+            </Step>
+
+            <Step n={6} title={`Give ${agent} a face`} done={!!done.face} onToggle={() => toggle("face")}
+              blurb="If you picked a face at signup, set it now. If not, grab one from the library.">
+              <div className="bg-accentSoft border-2 border-ink p-4">
+                <div className="mono text-[11px] text-ink/70 uppercase tracking-widest font-semibold mb-3">Two ways to set it</div>
+                <div className="mb-3">
+                  <div className="text-sm font-semibold text-ink mb-1">Right on your bot (fastest)</div>
+                  <p className="text-sm text-ink/80">Open your bot's chat, tap its name at the top to open its profile, tap <span className="font-semibold">Edit</span>, then tap the photo icon and upload the image.</p>
+                </div>
+                <div className="border-t border-ink/15 pt-3">
+                  <div className="text-sm font-semibold text-ink mb-1">Or through @BotFather</div>
+                  <p className="text-sm text-ink/80">Message <span className="mono font-semibold">@BotFather</span>, send <span className="mono font-semibold">/setuserpic</span>, choose your bot, and upload the image.</p>
+                </div>
+              </div>
+              <p className="text-sm text-ink/60 mt-3">
+                Need a picture? <a href={PFP_FOLDER_URL} target="_blank" rel="noopener noreferrer" className="underline hover:text-accent font-semibold">Browse the face library →</a>
+              </p>
+            </Step>
+
+            <Step n={7} title={`What ${agent} can do`} done={!!done.features} onToggle={() => toggle("features")}
+              blurb="A quick tour of what you've got, and what to expect in the first couple of weeks.">
+              <div className="grid sm:grid-cols-2 gap-3">
+                {[
+                  ["Runs your day", "Morning brief, midday checkpoint, end-of-day summary — automatically, on schedule."],
+                  ["Handles your inbox", "Triages what matters, drafts replies in your voice, tracks what needs a follow-up."],
+                  ["Knows your calendar", "Preps you for meetings and tells you what's coming before you have to ask."],
+                  ["Keeps your Notion HQ", "Projects, priorities, handoffs, and logs — kept current without you maintaining it."],
+                  ["Remembers", "Your context, your commitments, your preferences. It gets sharper the more you use it."],
+                  ["Grows with you", "New skills and tool connections get added as your needs change."],
+                ].map(([t, d]) => (
+                  <div key={t} className="border-2 border-ink/15 bg-paper p-3">
+                    <div className="text-sm font-semibold text-ink mb-1">{t}</div>
+                    <div className="text-xs text-ink/65 leading-relaxed">{d}</div>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-4 border-2 border-ink bg-card p-4">
+                <div className="text-sm font-semibold text-ink mb-1.5">What to expect early on</div>
+                <p className="text-sm text-ink/70 leading-relaxed">
+                  The first week is a settling-in period. Correct it when it gets something wrong — that's how it learns your preferences. By week two it should feel like it knows you.
+                </p>
+              </div>
+              {setup.agentType && (
+                <a href={SHEETS[setup.agentType]} target="_blank" rel="noopener noreferrer"
+                  className="mt-4 inline-block mono text-[11px] uppercase tracking-widest font-semibold text-accent hover:text-ink underline decoration-2 underline-offset-2">
+                  Open the full feature sheet →
+                </a>
+              )}
+            </Step>
+
+            <Step n={8} title="Your subscription" done={!!done.billing} onToggle={() => toggle("billing")}
+              blurb="Get your managed service started now so nothing pauses after launch.">
+              <a href={PAYMENT_URL} target="_blank" rel="noopener noreferrer"
+                className="block w-full text-center display font-black text-sm uppercase tracking-widest bg-ink text-accent border-2 border-ink px-6 py-4 shadow-brut hover:bg-accent hover:text-ink transition-all">
+                Set up my subscription →
+              </a>
+              <p className="text-xs text-ink/50 mt-3">Opens our secure payment page in a new tab. Come back here when you're done.</p>
+            </Step>
+
+            <Step n={9} title="Getting support" done={!!done.support} onToggle={() => toggle("support")}
+              blurb="Anything breaks, anything confusing, anything you want added — this is where you go.">
+              <div className="border-2 border-ink bg-card p-5 text-center">
+                <div className="mono text-[11px] uppercase tracking-widest font-semibold text-ink/60 mb-2">Submit a ticket for support needs</div>
+                <a href={`mailto:${SUPPORT_EMAIL}`} className="display font-bold text-lg text-accent hover:text-ink transition-colors break-all">{SUPPORT_EMAIL}</a>
+                <p className="text-xs text-ink/55 mt-3">Tell us your agent's name and what happened. We'll come back to you.</p>
+              </div>
+            </Step>
+
+            {/* SIGN OFF */}
+            <section className="border-2 border-ink bg-darkCard text-paper shadow-brut p-6 md:p-8 mt-10">
+              <div className="mono text-xs text-accent uppercase tracking-widest font-semibold mb-3">Sign off</div>
+              <h2 className="text-2xl md:text-3xl text-paper mb-3">All set?</h2>
+              <p className="text-paper/70 text-sm leading-relaxed mb-6">
+                Pop your initials below to confirm we walked through everything on this page together and you know how to use {agent}. We'll send your confirmation and full feature sheet to {setup.clientEmail.trim() || "your email"}.
+              </p>
+
+              {!allDone && (
+                <div className="mb-5 border-2 border-gold bg-gold/10 p-3 text-sm text-paper/80">
+                  {STEP_IDS.length - doneCount} step{STEP_IDS.length - doneCount === 1 ? "" : "s"} still unticked. You can still sign off — we'll note what was covered.
+                </div>
+              )}
+
+              <div className="flex flex-col sm:flex-row gap-3">
+                <input
+                  type="text" value={initials} onChange={e => setInitials(e.target.value.slice(0, 5))}
+                  placeholder="Your initials" maxLength={5}
+                  className="flex-1 px-4 py-4 bg-paper text-ink border-2 border-paper focus:outline-none display font-black text-center text-xl uppercase tracking-[0.3em] placeholder:text-ink/25 placeholder:tracking-normal placeholder:font-normal placeholder:text-sm"
+                />
+                <button
+                  onClick={submit} disabled={!canSign || phase === "submitting"}
+                  className="display font-black text-sm uppercase tracking-widest bg-accent text-ink border-2 border-accent px-8 py-4 hover:bg-paper hover:border-paper disabled:bg-paper/20 disabled:border-paper/20 disabled:text-paper/40 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-3"
+                >
+                  {phase === "submitting" ? (
+                    <>
+                      <svg className="spin-slow circle" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#181818" strokeWidth="3" strokeLinecap="round"><circle cx="12" cy="12" r="9" strokeDasharray="40 60" /></svg>
+                      Confirming...
+                    </>
+                  ) : "Confirm launch →"}
+                </button>
+              </div>
+
+              {phase === "error" && (
+                <div className="mt-4 border-2 border-gold bg-gold/10 p-3 text-sm text-paper/85">
+                  Something went wrong sending that. Try again in a moment — if it keeps happening, email {SUPPORT_EMAIL}.
+                </div>
+              )}
+            </section>
+          </div>
+        )}
+      </main>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>
