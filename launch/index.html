@@ -80,6 +80,15 @@ const SHEETS = {
 
 const AGENT_TYPES = ["Chief of Staff", "Transaction Coordinator", "Other"];
 
+// Email + calendar + Notion are the baseline 3. Two more keeps a launch call to
+// 5 connection links, which is about as many as anyone can sign into in one sitting.
+const MAX_EXTRA_CONNECTIONS = 2;
+const CONNECTION_SUGGESTIONS = "Google Drive, Google Docs, Google Sheets, Slack, HubSpot, Asana, ClickUp, Calendly";
+
+// "a, b, and c" — reads naturally inside a prompt.
+const listOf = (arr) => arr.length <= 1 ? (arr[0] || "")
+  : arr.slice(0, -1).join(", ") + ", and " + arr[arr.length - 1];
+
 // Feature content pulled from the COS / TC feature sheets. "Other" uses the COS set —
 // every agent ships with the COS stack.
 const FEATURES = {
@@ -256,11 +265,12 @@ const STEP_IDS = ["connect", "spin", "dashboard", "face", "features", "billing",
 function App() {
   const [setup, setSetup] = useState({
     clientName: "", clientEmail: "", agentName: "", agentType: "",
-    emailProvider: "Gmail", calProvider: "Google Calendar",
+    emailProvider: "", calProvider: "",
+    extraConnections: [],   // up to MAX_EXTRA_CONNECTIONS more tools
   });
   const [generated, setGenerated] = useState(false);
   const [done, setDone] = useState({});
-  const [conn, setConn] = useState({ email: false, calendar: false, notion: false });
+  const [conn, setConn] = useState({});   // keyed by service label
   const [initials, setInitials] = useState("");
   const [phase, setPhase] = useState("run"); // run | submitting | complete | error
   const [errorMsg, setErrorMsg] = useState("");
@@ -278,13 +288,24 @@ function App() {
   const cal = setup.calProvider.trim() || "calendar";
   const feat = setup.agentType === "Transaction Coordinator" ? FEATURES.tc : FEATURES.cos;
 
+  // Everything we're connecting on this call: the baseline 3 plus any extras they named.
+  const extras = setup.extraConnections.map(s => s.trim()).filter(Boolean);
+  const services = [email, cal, "Notion"].concat(extras);
+
+  const addConnection = () => setSetup(s =>
+    s.extraConnections.length >= MAX_EXTRA_CONNECTIONS ? s : { ...s, extraConnections: [...s.extraConnections, ""] });
+  const setConnection = (i, val) => setSetup(s => {
+    const next = [...s.extraConnections]; next[i] = val; return { ...s, extraConnections: next };
+  });
+  const removeConnection = (i) => setSetup(s => ({ ...s, extraConnections: s.extraConnections.filter((_, x) => x !== i) }));
+
   const prompts = useMemo(() => ({
     kickoff: `Hey ${agent}, this is ${client} — nice to finally meet you!
 
-Go ahead and absorb all your files and get yourself up to speed. Once you're ready, run your SN Connection Protocol for ${email}, ${cal}, and Notion — send me all the connection links at once so I can sign in to everything in one go.`,
+Go ahead and absorb all your files and get yourself up to speed. Once you're ready, run your SN Connection Protocol for ${listOf(services)} — send me all the connection links at once so I can sign in to everything in one go.`,
     spin: `I'm connected now. Please read through my inbox and tell me what's important today, then check my calendar and tell me what my week looks like.`,
     dashboard: notionPrompt(setup.agentType),
-  }), [agent, client, email, cal, setup.agentType]);
+  }), [agent, client, email, cal, services.join("|"), setup.agentType]);
 
   const doneCount = STEP_IDS.filter(id => done[id]).length;
   const allDone = doneCount === STEP_IDS.length;
@@ -315,7 +336,9 @@ Go ahead and absorb all your files and get yourself up to speed. Once you're rea
         agentType: setup.agentType,
         emailProvider: email,
         calProvider: cal,
-        connections: conn,
+        extraConnections: extras,
+        services: services,
+        connections: services.reduce(function (acc, label) { acc[label] = !!conn[label]; return acc; }, {}),
         stepsCompleted: STEP_IDS.filter(id => done[id]),
         stepsTotal: STEP_IDS.length,
         initials: initials.trim().toUpperCase(),
@@ -423,14 +446,46 @@ Go ahead and absorb all your files and get yourself up to speed. Once you're rea
           <div className="grid sm:grid-cols-2 gap-4 mt-5">
             <div>
               <label className="block mono text-[11px] font-semibold uppercase tracking-widest text-ink/80 mb-2">Your email provider <span className="text-accent">*</span></label>
-              <input type="text" value={setup.emailProvider} onChange={e => up({ emailProvider: e.target.value })} placeholder="Gmail" className={inputClass} />
+              <input type="text" value={setup.emailProvider} onChange={e => up({ emailProvider: e.target.value })} placeholder="your email provider" className={inputClass} />
             </div>
             <div>
               <label className="block mono text-[11px] font-semibold uppercase tracking-widest text-ink/80 mb-2">Your calendar <span className="text-accent">*</span></label>
-              <input type="text" value={setup.calProvider} onChange={e => up({ calProvider: e.target.value })} placeholder="Google Calendar" className={inputClass} />
+              <input type="text" value={setup.calProvider} onChange={e => up({ calProvider: e.target.value })} placeholder="your calendar provider" className={inputClass} />
             </div>
           </div>
           <p className="text-xs text-ink/50 mt-2">Notion is included automatically.</p>
+
+          {/* Optional extra tools — capped so a launch call stays at 5 links */}
+          {setup.extraConnections.length > 0 && (
+            <div className="mt-4 space-y-3">
+              {setup.extraConnections.map((val, i) => (
+                <div key={i}>
+                  <label className="block mono text-[11px] font-semibold uppercase tracking-widest text-ink/80 mb-2">Another tool to connect</label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={val}
+                      onChange={e => setConnection(i, e.target.value)}
+                      placeholder={CONNECTION_SUGGESTIONS}
+                      className={inputClass}
+                    />
+                    <button type="button" onClick={() => removeConnection(i)}
+                      className="w-10 h-10 flex-shrink-0 border-2 border-ink/25 hover:border-ink text-ink/60 hover:text-ink font-black" aria-label="Remove">✕</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {setup.extraConnections.length < MAX_EXTRA_CONNECTIONS && (
+            <button type="button" onClick={addConnection}
+              className="mt-3 mono text-[11px] font-semibold uppercase tracking-widest text-accent hover:text-ink border-2 border-accent hover:border-ink px-4 py-2 transition-colors">
+              + Add {setup.extraConnections.length === 0 ? "another connection" : "one more connection"}
+            </button>
+          )}
+          {setup.extraConnections.length >= MAX_EXTRA_CONNECTIONS && (
+            <p className="text-xs text-ink/45 mt-3">That's five connections — plenty for one call. We can add more anytime after launch.</p>
+          )}
 
           {/* Notion pre-flight — done before anything connects */}
           <div className="mt-6 border-2 border-ink bg-accentSoft p-5">
@@ -456,14 +511,14 @@ Go ahead and absorb all your files and get yourself up to speed. Once you're rea
           <div id="runofshow" className="fade-in">
 
             <Step n={1} title={`Meet ${agent} and connect your tools`} done={!!done.connect} onToggle={() => toggle("connect")}
-              blurb={`Open Telegram and send this one message. It wakes your agent up, gets it up to speed on your files, and pulls all three connection links at once — ${email}, ${cal}, and Notion. Sign in to each, then tick them off.`}>
+              blurb={`Open Telegram and send this one message. It wakes your agent up, gets it up to speed on your files, and pulls all ${services.length} connection links at once — ${listOf(services)}. Sign in to each, then tick them off.`}>
               <PromptBox text={prompts.kickoff} />
               <div className="mt-4 border-2 border-ink/15 bg-paper p-4">
                 <div className="mono text-[11px] uppercase tracking-widest font-semibold text-ink/60 mb-3">Signed in to…</div>
                 <div className="space-y-2.5">
-                  {[["email", email], ["calendar", cal], ["notion", "Notion"]].map(([k, label]) => (
-                    <label key={k} className="flex items-center gap-2.5 cursor-pointer select-none">
-                      <input type="checkbox" checked={conn[k]} onChange={() => setConn(c => ({ ...c, [k]: !c[k] }))} className="w-5 h-5 flex-shrink-0" />
+                  {services.map((label) => (
+                    <label key={label} className="flex items-center gap-2.5 cursor-pointer select-none">
+                      <input type="checkbox" checked={!!conn[label]} onChange={() => setConn(c => ({ ...c, [label]: !c[label] }))} className="w-5 h-5 flex-shrink-0" />
                       <span className="text-sm text-ink/80">{label}</span>
                     </label>
                   ))}
@@ -536,6 +591,16 @@ Go ahead and absorb all your files and get yourself up to speed. Once you're rea
                 </div>
                 <p className="text-xs text-ink/55 mt-4 pt-3 border-t border-ink/15">
                   You don't need special commands — talk to {agent} in plain English, like a teammate.
+                </p>
+              </div>
+
+              <div className="mt-4 border-2 border-ink bg-ink text-paper p-5">
+                <div className="mono text-[11px] uppercase tracking-widest font-semibold text-accent mb-2">Adding tools later</div>
+                <p className="text-sm text-paper/85 leading-relaxed">
+                  Want {agent} connected to something new? Just ask — say <span className="font-semibold text-paper">"connect me to [tool]"</span> or <span className="font-semibold text-paper">"run your SN Connection Protocol"</span> and it'll send you a link.
+                </p>
+                <p className="text-sm text-paper/70 leading-relaxed mt-3">
+                  Most popular platforms are ready to go. A few need extra work on our side — a custom API build or similar. If there's a connection that would really move the needle for you, tell us and we'll scope it.
                 </p>
               </div>
 
