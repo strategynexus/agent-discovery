@@ -90,6 +90,11 @@ const PUBLIC_KEY_SPKI_B64 = "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAqdrQfCw
 
 const AGENT_TYPES = ["Chief of Staff", "Transaction Coordinator", "Other"];
 
+// RSA-2048 + OAEP(SHA-256) max plaintext = 256 - 2*32 - 2 = 190 bytes. Each extra
+// secret is encrypted on its own, so the cap is per field.
+const MAX_SECRET_BYTES = 190;
+const byteLen = (s) => new TextEncoder().encode(s || "").length;
+
 // Curated timezone list (common US zones + a few international) + Other for anything else.
 const TIMEZONES = [
   "Eastern (ET)",
@@ -325,6 +330,7 @@ const initialData = {
   apiKey: "",
   commStyle: "",
   businessContext: "",
+  extraSecrets: [],  // optional [{ label, secret }] — anything else that needs encrypting
   pfpChoice: null,   // null = not answered yet | { none:true } | { n, id, name }
   consent: false,
 };
@@ -357,11 +363,22 @@ function App() {
   const addTgId = () => setData(d => ({ ...d, telegramUserIds: [...d.telegramUserIds, ""] }));
   const removeTgId = (i) => setData(d => ({ ...d, telegramUserIds: d.telegramUserIds.filter((_, x) => x !== i) }));
 
+  // Optional extra secrets (label + value), encrypted individually like the rest.
+  const addExtra = () => setData(d => ({ ...d, extraSecrets: [...d.extraSecrets, { label: "", secret: "" }] }));
+  const setExtra = (i, patch) => setData(d => {
+    const next = d.extraSecrets.map((row, x) => x === i ? { ...row, ...patch } : row);
+    return { ...d, extraSecrets: next };
+  });
+  const removeExtra = (i) => setData(d => ({ ...d, extraSecrets: d.extraSecrets.filter((_, x) => x !== i) }));
+
   const valid = useMemo(() => {
     const typeOk = data.agentType && (data.agentType !== "Other" || data.agentTypeOther.trim().length > 1);
     const tzOk = data.timezone && (data.timezone !== "Other" || data.timezoneOther.trim().length > 1);
     const tgOk = data.telegramUserIds.some(id => id.trim().length >= 3);
+    // Extra secrets are optional, but any that were filled in must fit in one RSA block.
+    const extrasOk = data.extraSecrets.every(r => !r.secret.trim() || byteLen(r.secret) <= MAX_SECRET_BYTES);
     return (
+      extrasOk &&
       typeOk &&
       data.clientName.trim().length >= 2 &&
       data.companyName.trim().length >= 2 &&
@@ -393,6 +410,13 @@ function App() {
         encryptField(data.apiKey.trim()),
       ]);
 
+      // Encrypt any extra secrets the client added (skipping blank rows).
+      const filledExtras = data.extraSecrets.filter(r => r.secret.trim());
+      const encExtras = [];
+      for (const row of filledExtras) {
+        encExtras.push({ label: row.label.trim(), enc_value: await encryptField(row.secret.trim()) });
+      }
+
       const timezone = data.timezone === "Other" ? data.timezoneOther.trim() : data.timezone;
 
       const today = new Date().toISOString().slice(0, 10).replace(/-/g, "");
@@ -421,6 +445,7 @@ function App() {
         enc_telegramUserIds: encTgIds,
         enc_botToken: encBot,
         enc_apiKey: encKey,
+        extra_secrets: encExtras,   // [{ label, enc_value }] — same ENC format as the rest
         capturedAt: new Date().toString(),
       };
 
@@ -586,6 +611,59 @@ function App() {
         {/* Business context */}
         <Field label="Anything else we should know" hint="Business details, use cases, ideas, daily tasks, current projects — anything that gives your agent useful context.">
           <textarea value={data.businessContext} onChange={e => update({ businessContext: e.target.value })} rows={5} placeholder="We're a boutique real estate team. Day to day we juggle showings, follow-ups, and paperwork. I'd love the agent to draft my follow-up emails and keep my calendar sane..." className={inputClass + " resize-none"} />
+        </Field>
+
+        <div className="my-8 border-t-2 border-ink/10"></div>
+
+        {/* Extra secrets — optional catch-all so nobody has to leave this page */}
+        <Field
+          label="Anything else we asked you for?"
+          hint="Only if we asked. Another platform's API key, a login, a token — add it here so you don't have to leave this page. Encrypted exactly like the fields above."
+        >
+          {data.extraSecrets.length > 0 && (
+            <div className="space-y-4 mb-3">
+              {data.extraSecrets.map((row, i) => {
+                const n = byteLen(row.secret);
+                const over = n > MAX_SECRET_BYTES;
+                return (
+                  <div key={i} className="border-l-2 border-accent pl-4">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="mono text-[11px] uppercase tracking-widest font-semibold text-ink/60">What is it?</span>
+                      <button type="button" onClick={() => removeExtra(i)} className="mono text-[11px] text-ink/40 hover:text-[#C0392B] transition-colors">✕ remove</button>
+                    </div>
+                    <input
+                      type="text"
+                      value={row.label}
+                      onChange={e => setExtra(i, { label: e.target.value })}
+                      placeholder="e.g. Follow Up Boss API key"
+                      className={inputClass + " mb-2"}
+                    />
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="mono text-[11px] uppercase tracking-widest font-semibold text-ink/60">The value</span>
+                      <span className={`mono text-[11px] ${over ? "text-[#C0392B] font-semibold" : "text-ink/40"}`}>{n} / {MAX_SECRET_BYTES}</span>
+                    </div>
+                    <textarea
+                      rows={2}
+                      value={row.secret}
+                      onChange={e => setExtra(i, { secret: e.target.value })}
+                      placeholder="Paste it here"
+                      className={inputClass + " mono resize-none " + (over ? "border-[#C0392B]" : "")}
+                    />
+                    {over && (
+                      <p className="text-xs text-[#C0392B] mt-1.5">That's too long to encrypt in one go. Split it across two entries.</p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          <button
+            type="button"
+            onClick={addExtra}
+            className="mono text-[11px] font-semibold uppercase tracking-widest text-accent hover:text-ink border-2 border-accent hover:border-ink px-4 py-2 transition-colors"
+          >
+            + Add {data.extraSecrets.length > 0 ? "another" : "a secret"}
+          </button>
         </Field>
 
         <div className="my-8 border-t-2 border-ink/10"></div>
