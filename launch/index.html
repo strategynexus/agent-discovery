@@ -59,7 +59,7 @@
 <div id="root"></div>
 
 <script type="text/babel">
-const { useState, useMemo } = React;
+const { useState, useMemo, useEffect } = React;
 
 // ============================================================================
 // CONFIG
@@ -222,25 +222,19 @@ function PromptBox({ text }) {
   );
 }
 
-function Step({ n, title, blurb, done, onToggle, children }) {
+function Step({ n, title, blurb, children }) {
   return (
-    <section className={`border-2 border-ink mb-5 transition-all ${done ? "bg-accentSoft" : "bg-card shadow-brut"}`}>
+    <section data-step={n} className="border-2 border-ink bg-card shadow-brut mb-5">
       <header className="flex items-start gap-3 p-5 border-b-2 border-ink/10">
-        <div className={`w-9 h-9 flex-shrink-0 flex items-center justify-center display font-black circle border-2 border-ink ${done ? "bg-accent text-ink" : "bg-ink text-accent"}`}>
-          {done ? "✓" : n}
+        <div className="w-9 h-9 flex-shrink-0 flex items-center justify-center display font-black circle border-2 border-ink bg-ink text-accent">
+          {n}
         </div>
         <div className="flex-1 min-w-0">
           <h2 className="text-xl md:text-2xl">{title}</h2>
           {blurb && <p className="text-sm text-ink/70 mt-1.5 leading-relaxed">{blurb}</p>}
         </div>
       </header>
-      <div className="p-5">
-        {children}
-        <label className="flex items-center gap-2.5 mt-5 cursor-pointer select-none">
-          <input type="checkbox" checked={done} onChange={onToggle} className="w-5 h-5 flex-shrink-0" />
-          <span className="mono text-[11px] uppercase tracking-widest font-semibold text-ink/60">Done — next step</span>
-        </label>
-      </div>
+      <div className="p-5">{children}</div>
     </section>
   );
 }
@@ -260,7 +254,7 @@ function Header() {
 // APP
 // ============================================================================
 
-const STEP_IDS = ["connect", "spin", "dashboard", "face", "features", "billing", "support"];
+const TOTAL_STEPS = 7;
 
 function App() {
   const [setup, setSetup] = useState({
@@ -269,14 +263,29 @@ function App() {
     extraConnections: [],   // up to MAX_EXTRA_CONNECTIONS more tools
   });
   const [generated, setGenerated] = useState(false);
-  const [done, setDone] = useState({});
-  const [conn, setConn] = useState({});   // keyed by service label
+  const [curStep, setCurStep] = useState(1);   // scroll-driven, purely a pacing cue
   const [initials, setInitials] = useState("");
   const [phase, setPhase] = useState("run"); // run | submitting | complete | error
   const [errorMsg, setErrorMsg] = useState("");
 
   const up = (patch) => setSetup(s => ({ ...s, ...patch }));
-  const toggle = (id) => setDone(d => ({ ...d, [id]: !d[id] }));
+
+  // Track which step is in view so the header can show "Step 3 of 7" without
+  // asking the client to click anything.
+  useEffect(() => {
+    if (!generated) return;
+    const onScroll = () => {
+      const secs = [...document.querySelectorAll("section[data-step]")];
+      let n = 1;
+      for (const s of secs) {
+        if (s.getBoundingClientRect().top <= 160) n = Number(s.dataset.step);
+      }
+      setCurStep(n);
+    };
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, [generated]);
 
   const setupOk = setup.clientName.trim().length >= 2 && setup.agentName.trim().length >= 2 &&
                   /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(setup.clientEmail.trim()) &&
@@ -307,8 +316,6 @@ Go ahead and absorb all your files and get yourself up to speed. Once you're rea
     dashboard: notionPrompt(setup.agentType),
   }), [agent, client, email, cal, services.join("|"), setup.agentType]);
 
-  const doneCount = STEP_IDS.filter(id => done[id]).length;
-  const allDone = doneCount === STEP_IDS.length;
   const canSign = initials.trim().length >= 2;
 
   const generate = () => {
@@ -338,9 +345,6 @@ Go ahead and absorb all your files and get yourself up to speed. Once you're rea
         calProvider: cal,
         extraConnections: extras,
         services: services,
-        connections: services.reduce(function (acc, label) { acc[label] = !!conn[label]; return acc; }, {}),
-        stepsCompleted: STEP_IDS.filter(id => done[id]),
-        stepsTotal: STEP_IDS.length,
         initials: initials.trim().toUpperCase(),
         capturedAt: new Date().toString(),
       };
@@ -393,9 +397,9 @@ Go ahead and absorb all your files and get yourself up to speed. Once you're rea
         <div className="sticky top-[65px] z-30 bg-paper border-b-2 border-ink/10">
           <div className="max-w-3xl mx-auto px-6 py-2.5 flex items-center gap-3">
             <div className="flex-1 h-2 bg-ink/10 border border-ink/20">
-              <div className="h-full bg-accent transition-all" style={{ width: `${(doneCount / STEP_IDS.length) * 100}%` }}></div>
+              <div className="h-full bg-accent transition-all" style={{ width: `${(curStep / TOTAL_STEPS) * 100}%` }}></div>
             </div>
-            <div className="mono text-[11px] font-semibold text-ink/60 whitespace-nowrap">{doneCount} / {STEP_IDS.length}</div>
+            <div className="mono text-[11px] font-semibold text-ink/60 whitespace-nowrap">Step {curStep} of {TOTAL_STEPS}</div>
           </div>
         </div>
       )}
@@ -487,13 +491,12 @@ Go ahead and absorb all your files and get yourself up to speed. Once you're rea
             <p className="text-xs text-ink/45 mt-3">That's five connections — plenty for one call. We can add more anytime after launch.</p>
           )}
 
-          {/* Notion pre-flight — done before anything connects */}
+          {/* Pre-flight — have both of these open before we start */}
           <div className="mt-6 border-2 border-ink bg-accentSoft p-5">
-            <div className="mono text-[11px] uppercase tracking-widest font-semibold text-ink/70 mb-3">Before we start — get Notion ready</div>
+            <div className="mono text-[11px] uppercase tracking-widest font-semibold text-ink/70 mb-3">Before we start — open these two</div>
             <ul className="text-sm text-ink/80 space-y-2.5 list-disc list-inside">
-              <li>Open <a href="https://notion.so" target="_blank" rel="noopener noreferrer" className="underline hover:text-accent font-semibold">notion.so</a> and make sure you're signed in.</li>
-              <li><span className="font-semibold">If your Notion is brand new and empty</span>, create one blank page and name it <span className="mono bg-card px-1.5 py-0.5 border border-ink/20">AI HQ</span>. Your agent needs a home to build in.</li>
-              <li>When you connect Notion in a moment, make sure you <span className="font-semibold">grant access to that page</span>.</li>
+              <li><span className="font-semibold">Telegram</span> — you'll be messaging your agent here, so have it open and ready.</li>
+              <li><span className="font-semibold">Notion</span> — open <a href="https://notion.so" target="_blank" rel="noopener noreferrer" className="underline hover:text-accent font-semibold">notion.so</a> and make sure you're signed in. When you connect it in a moment, grant your agent access to your workspace and it'll build its own space from there.</li>
             </ul>
           </div>
 
@@ -510,33 +513,30 @@ Go ahead and absorb all your files and get yourself up to speed. Once you're rea
         {generated && (
           <div id="runofshow" className="fade-in">
 
-            <Step n={1} title={`Meet ${agent} and connect your tools`} done={!!done.connect} onToggle={() => toggle("connect")}
+            <Step n={1} title={`Meet ${agent} and connect your tools`}
               blurb={`Open Telegram and send this one message. It wakes your agent up, gets it up to speed on your files, and pulls all ${services.length} connection links at once — ${listOf(services)}. Sign in to each, then tick them off.`}>
               <PromptBox text={prompts.kickoff} />
               <div className="mt-4 border-2 border-ink/15 bg-paper p-4">
-                <div className="mono text-[11px] uppercase tracking-widest font-semibold text-ink/60 mb-3">Signed in to…</div>
-                <div className="space-y-2.5">
+                <div className="mono text-[11px] uppercase tracking-widest font-semibold text-ink/60 mb-3">You'll get {services.length} links — sign in to each</div>
+                <div className="flex flex-wrap gap-2">
                   {services.map((label) => (
-                    <label key={label} className="flex items-center gap-2.5 cursor-pointer select-none">
-                      <input type="checkbox" checked={!!conn[label]} onChange={() => setConn(c => ({ ...c, [label]: !c[label] }))} className="w-5 h-5 flex-shrink-0" />
-                      <span className="text-sm text-ink/80">{label}</span>
-                    </label>
+                    <span key={label} className="text-sm text-ink/80 bg-card border-2 border-ink/20 px-3 py-1.5">{label}</span>
                   ))}
                 </div>
               </div>
             </Step>
 
-            <Step n={2} title="Take it for a spin" done={!!done.spin} onToggle={() => toggle("spin")}
+            <Step n={2} title="Take it for a spin"
               blurb="This proves the connections work — and gives your agent real context about your week before it builds anything.">
               <PromptBox text={prompts.spin} />
             </Step>
 
-            <Step n={3} title="Build your dashboard" done={!!done.dashboard} onToggle={() => toggle("dashboard")}
+            <Step n={3} title="Build your dashboard"
               blurb="Now that it knows what's going on in your world, your agent builds your Notion HQ using that context. This one takes a few minutes to run — good time to talk through what's coming next.">
               <PromptBox text={prompts.dashboard} />
             </Step>
 
-            <Step n={4} title={`Give ${agent} a face`} done={!!done.face} onToggle={() => toggle("face")}
+            <Step n={4} title={`Give ${agent} a face`}
               blurb="If you picked a face at signup, set it now. If not, grab one from the library.">
               <div className="bg-accentSoft border-2 border-ink p-4">
                 <div className="mono text-[11px] text-ink/70 uppercase tracking-widest font-semibold mb-3">Two ways to set it</div>
@@ -554,7 +554,7 @@ Go ahead and absorb all your files and get yourself up to speed. Once you're rea
               </p>
             </Step>
 
-            <Step n={5} title={`What ${agent} can do`} done={!!done.features} onToggle={() => toggle("features")}
+            <Step n={5} title={`What ${agent} can do`}
               blurb="The tour. What runs on its own, what it handles day to day, and what to actually say to it.">
 
               <div className="mono text-[11px] uppercase tracking-widest font-semibold text-ink/60 mb-3">Runs on its own</div>
@@ -619,7 +619,7 @@ Go ahead and absorb all your files and get yourself up to speed. Once you're rea
               )}
             </Step>
 
-            <Step n={6} title="Your subscription" done={!!done.billing} onToggle={() => toggle("billing")}
+            <Step n={6} title="Your subscription"
               blurb="Get your managed service started now so nothing pauses after launch.">
               <a href={PAYMENT_URL} target="_blank" rel="noopener noreferrer"
                 className="block w-full text-center display font-black text-sm uppercase tracking-widest bg-ink text-accent border-2 border-ink px-6 py-4 shadow-brut hover:bg-accent hover:text-ink transition-all">
@@ -628,7 +628,7 @@ Go ahead and absorb all your files and get yourself up to speed. Once you're rea
               <p className="text-xs text-ink/50 mt-3">Opens our secure payment page in a new tab. Come back here when you're done.</p>
             </Step>
 
-            <Step n={7} title="Getting support" done={!!done.support} onToggle={() => toggle("support")}
+            <Step n={7} title="Getting support"
               blurb="Anything breaks, anything confusing, anything you want added — this is where you go.">
               <div className="border-2 border-ink bg-card p-5 text-center">
                 <div className="mono text-[11px] uppercase tracking-widest font-semibold text-ink/60 mb-2">Submit a ticket for support needs</div>
@@ -644,12 +644,6 @@ Go ahead and absorb all your files and get yourself up to speed. Once you're rea
               <p className="text-paper/70 text-sm leading-relaxed mb-6">
                 Pop your initials below to confirm we walked through everything on this page together and you know how to use {agent}. We'll send your confirmation and full feature sheet to {setup.clientEmail.trim() || "your email"}.
               </p>
-
-              {!allDone && (
-                <div className="mb-5 border-2 border-gold bg-gold/10 p-3 text-sm text-paper/80">
-                  {STEP_IDS.length - doneCount} step{STEP_IDS.length - doneCount === 1 ? "" : "s"} still unticked. You can still sign off — we'll note what was covered.
-                </div>
-              )}
 
               <div className="flex flex-col sm:flex-row gap-3">
                 <input
