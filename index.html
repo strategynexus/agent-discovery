@@ -232,13 +232,13 @@ const HOWTO = {
     ],
   },
   apiKey: {
-    title: "Get your Anthropic API key",
+    title: "Get your OpenRouter API key",
     steps: [
-      ["Go to platform.claude.com.", "Sign in or create an account."],
-      ["Fund the account with a $50 minimum.", "Turn on auto-refill (recommended) so your agent never runs out of credits."],
-      ["In the dashboard, go to \"Get API Key\".", ""],
-      ["Name the key [your agent name]-1.", "For example: Jane-1"],
-      ["Click next, then copy the full API key.", "Paste it into the Anthropic API Key field."],
+      ["Go to openrouter.ai and sign in.", "Create an account with Google, GitHub, or email if you don't have one yet."],
+      ["Add credits to your account.", "Go to openrouter.ai/credits and add a balance ($50 recommended). Turn on auto top-up so your agent never runs out."],
+      ["Open the Keys page.", "Click your profile icon in the top right, choose \"Keys\" — or just go to openrouter.ai/keys."],
+      ["Click \"Create Key\" and name it [your agent name]-1.", "For example: Jane-1. You can leave the credit limit blank."],
+      ["Copy the full key (it starts with sk-or-v1-).", "OpenRouter only shows it once. Paste it into the OpenRouter API Key field."],
     ],
   },
 };
@@ -586,13 +586,13 @@ function App() {
         </Field>
 
         {/* API key */}
-        <Field label="Anthropic API Key" required howto="How to get your key" onHowto={() => setModal("apiKey")} hint="🔒 Encrypted before it leaves this page.">
+        <Field label="OpenRouter API Key" required howto="How to get your key" onHowto={() => setModal("apiKey")} hint="🔒 Encrypted before it leaves this page.">
           <div className="relative">
             <input
               type={showKey ? "text" : "password"}
               value={data.apiKey}
               onChange={e => update({ apiKey: e.target.value })}
-              placeholder="sk-ant-api03-..."
+              placeholder="sk-or-v1-..."
               className={inputClass + " pr-16"}
             />
             <button type="button" onClick={() => setShowKey(s => !s)} className="absolute right-3 top-1/2 -translate-y-1/2 mono text-[11px] uppercase tracking-widest text-ink/50 hover:text-ink">
