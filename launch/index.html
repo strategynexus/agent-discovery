@@ -69,6 +69,7 @@ const SCHEMA_VERSION = "launch_v1";
 
 const PAYMENT_URL = "https://link.fastpaydirect.com/payment-link/6a221e5f71a0aa761e4631af";
 const SUPPORT_EMAIL = "info@thestrategyninjas.com";
+const SUPPORT_URL = "https://support.strategyninjas.ai/ai-employee-support-page";
 const PFP_FOLDER_URL = "https://drive.google.com/drive/folders/1cFjXQI21bu1PAIi60LWj_sEsIJ_sNB7g";
 
 // Feature sheets living in Drive (ids survive being moved into a Launches folder).
@@ -380,7 +381,7 @@ Go ahead and absorb all your files and get yourself up to speed. Once you're rea
               <ul className="text-sm text-ink/80 space-y-2 list-disc list-inside">
                 <li>Just talk to {agent} in Telegram like you would a teammate.</li>
                 <li>Your morning brief and EOD summary run automatically.</li>
-                <li>Need help? Email <a href={`mailto:${SUPPORT_EMAIL}`} className="underline hover:text-accent">{SUPPORT_EMAIL}</a>.</li>
+                <li>Need help? <a href={SUPPORT_URL} target="_blank" rel="noopener noreferrer" className="underline hover:text-accent font-semibold">Open a support ticket →</a></li>
               </ul>
             </div>
           </div>
@@ -630,10 +631,16 @@ Go ahead and absorb all your files and get yourself up to speed. Once you're rea
 
             <Step n={7} title="Getting support"
               blurb="Anything breaks, anything confusing, anything you want added — this is where you go.">
-              <div className="border-2 border-ink bg-card p-5 text-center">
-                <div className="mono text-[11px] uppercase tracking-widest font-semibold text-ink/60 mb-2">Submit a ticket for support needs</div>
-                <a href={`mailto:${SUPPORT_EMAIL}`} className="display font-bold text-lg text-accent hover:text-ink transition-colors break-all">{SUPPORT_EMAIL}</a>
-                <p className="text-xs text-ink/55 mt-3">Tell us your agent's name and what happened. We'll come back to you.</p>
+              <div className="border-2 border-ink bg-card p-6 text-center">
+                <div className="mono text-[11px] uppercase tracking-widest font-semibold text-accent mb-2">Support desk</div>
+                <p className="text-sm text-ink/75 leading-relaxed mb-5 max-w-md mx-auto">
+                  Anything you need — a fix, a question, or a new tool connection — goes through our support desk. Open a ticket and we'll track it start to finish.
+                </p>
+                <a href={SUPPORT_URL} target="_blank" rel="noopener noreferrer"
+                  className="inline-block display font-black text-sm uppercase tracking-widest bg-ink text-accent border-2 border-ink px-8 py-4 shadow-brut hover:bg-accent hover:text-ink transition-all">
+                  Open a support ticket →
+                </a>
+                <p className="text-xs text-ink/50 mt-4">Prefer email? Reach us at <a href={`mailto:${SUPPORT_EMAIL}`} className="underline hover:text-accent">{SUPPORT_EMAIL}</a>.</p>
               </div>
             </Step>
 
