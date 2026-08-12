@@ -45,7 +45,6 @@
   h1 { letter-spacing: -0.02em; line-height: 0.94; }
   button, input, textarea, select, .card, [class*="rounded"] { border-radius: 0 !important; }
   .circle { border-radius: 9999px !important; }
-  input[type=checkbox] { accent-color: #3EB8C8; }
   ::selection { background: #3EB8C8; color: #181818; }
   @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
   .fade-in { animation: fadeIn 0.3s ease-out; }
@@ -72,7 +71,8 @@ const SUPPORT_EMAIL = "info@thestrategyninjas.com";
 const SUPPORT_URL = "https://support.strategyninjas.ai/ai-employee-support-page";
 const PFP_FOLDER_URL = "https://drive.google.com/drive/folders/1cFjXQI21bu1PAIi60LWj_sEsIJ_sNB7g";
 
-// Feature sheets living in Drive (ids survive being moved into a Launches folder).
+// Feature/command guide, picked by agent type. "Other" uses the COS guide.
+// (Files were updated in place in Drive, so these ids stay current.)
 const SHEETS = {
   "Chief of Staff":          "https://drive.google.com/file/d/1TM7xYFUuKNct87K7oAN68QMi_6MUUyrx/view",
   "Transaction Coordinator": "https://drive.google.com/file/d/1GdHpeMgOoYxGmJOC-jljjqW88BPLcScB/view",
@@ -81,116 +81,90 @@ const SHEETS = {
 
 const AGENT_TYPES = ["Chief of Staff", "Transaction Coordinator", "Other"];
 
-// Email + calendar + Notion are the baseline 3. Two more keeps a launch call to
-// 5 connection links, which is about as many as anyone can sign into in one sitting.
-const MAX_EXTRA_CONNECTIONS = 2;
-const CONNECTION_SUGGESTIONS = "Google Drive, Google Docs, Google Sheets, Slack, HubSpot, Asana, ClickUp, Calendly";
+// What /onboard walks through (kept high level — the agent drives the detail).
+const ONBOARD_COVERS = [
+  ["Goals & responsibilities", "What you want help with first, so it focuses on real work instead of a generic tour."],
+  ["Provider & default setup", "You can usually continue with the defaults and decide on options later."],
+  ["Tool connections", "What to connect first — it generates secure connection links when available."],
+  ["Learn your world (read-only)", "It may ask permission to review limited context from connected apps before changing anything."],
+  ["Your preferences", "Tone, priorities, and recurring workflows it can remember with your OK."],
+  ["Workspace or dashboard (optional)", "It may offer to build one once it understands your goals — never forced."],
+  ["Automations (optional)", "It asks before creating anything recurring — what, when, and where."],
+  ["A first useful task", "It helps you actually get something done, not just finish setup."],
+];
 
-// "a, b, and c" — reads naturally inside a prompt.
-const listOf = (arr) => arr.length <= 1 ? (arr[0] || "")
-  : arr.slice(0, -1).join(", ") + ", and " + arr[arr.length - 1];
+const SPIN_EXAMPLES = [
+  "What can you help me with based on our setup so far?",
+  "Help me organize my priorities for this week.",
+  "Draft a follow-up email from these notes.",
+  "Create a checklist for this project.",
+  "If my calendar is connected, summarize my week.",
+];
 
-// Feature content pulled from the COS / TC feature sheets. "Other" uses the COS set —
-// every agent ships with the COS stack.
-const FEATURES = {
-  cos: {
-    rhythm: [
-      ["Morning Brief", "7:00am — your schedule, active priorities, and what needs attention today."],
-      ["Midday Checkpoint", "What's changed since this morning, and whether you're still on track."],
-      ["End-of-Day Summary", "5:30pm — what got done, what's still open, and a preview of tomorrow."],
-      ["Weekly Review", "Friday — wins, open loops, what carried forward, and next week's plan."],
-    ],
-    handles: [
-      ["Inbox triage", "Separates urgent from noise, flags client requests and deadlines, drafts replies in your voice."],
-      ["Meeting prep", "Briefs you before calls with context and talking points, then pulls out action items after."],
-      ["Priorities", "Sorts by urgency and impact, and tells you what to do now, schedule, delegate, or drop."],
-      ["Commitments & follow-ups", "Tracks what you promised, who owes you, and what's still open."],
-      ["Relationships", "Remembers your history and context with any client or contact."],
-      ["Writing & drafting", "Drafts emails, docs, and replies that sound like you, not like AI."],
-      ["Project memory", "Knows where you left off and what your current priorities are."],
-    ],
-    asks: [
-      "What emails need my attention?",
-      "What should I focus on today?",
-      "What do I need to know before this call?",
-      "What changed since this morning?",
-      "What did I promise to send?",
-      "Who owes me something?",
-      "When did I last talk to this person?",
-      "Draft a reply to this client.",
-      "Help me think through this decision.",
-      "Where did we leave off on this project?",
-    ],
+const CAPABILITIES = [
+  "Summarize information",
+  "Draft emails, proposals, checklists, reports, and notes",
+  "Research public information",
+  "Organize priorities and tasks",
+  "Prepare meetings and follow-ups",
+  "Connect to approved apps through secure links",
+  "Create reminders or recurring automations (with your permission)",
+  "Troubleshoot safely when something gets stuck",
+];
+
+const ASKS = [
+  "What should I focus on today?",
+  "Help me organize my priorities.",
+  "Draft a reply from these notes.",
+  "Create a checklist for this project.",
+  "Summarize this document.",
+  "What can you do now that this tool is connected?",
+];
+
+const AUTOMATIONS = [
+  "Morning briefing",
+  "End-of-day summary",
+  "Weekly review",
+  "Follow-up reminders",
+  "Scheduled reports",
+  "Monitoring tasks",
+];
+
+const COMMANDS = [
+  ["/start", "First-time wake-up / start button in Telegram."],
+  ["/onboard", "Guided setup and first-use flow."],
+  ["/connect", "Connect apps and tools through secure links."],
+  ["/automations", "Set up recurring tasks and schedules (with your consent)."],
+  ["/figureitout", "Troubleshoot a problem and try safe alternatives."],
+  ["/capabilities", "See what your AI Employee can do."],
+  ["/status", "Quick health / status check."],
+  ["/support", "Get Strategy Ninjas support information."],
+  ["/new", "Start a fresh conversation."],
+  ["/restart", "Refresh or recover if something feels stuck."],
+  ["/stop", "Cancel the current task."],
+  ["/queue", "Check queued messages or tasks."],
+  ["/voice", "Control voice input / output."],
+  ["/model", "Manage provider / model options where supported."],
+  ["/help", "Plain-language help."],
+];
+
+const STATUS_MSGS = [
+  {
+    msg: "“Working — starting API call”",
+    meaning: "Your AI Employee is still processing. Longer research, writing, or planning can take several requests.",
+    todo: "Wait if the task matters. Send /stop if you want to cancel.",
   },
-  tc: {
-    rhythm: [
-      ["Daily TC Briefing", "8:00am — what needs attention across every active file."],
-      ["EOD TC Summary", "4:30pm — what moved today, what's outstanding, what's at risk."],
-      ["Weekly Pipeline Review", "Friday — every deal, phase by phase, with what's coming."],
-    ],
-    handles: [
-      ["Transaction setup", "Contract intake, transaction file build-out, and your Notion workspace per deal."],
-      ["Deadline engine", "Tracks every critical date, pushes to your calendar, and alerts before things slip."],
-      ["Documents & compliance", "Runs the document checklist, reviews what's in, and fills PDF forms."],
-      ["Client & vendor updates", "Drafts status updates in the right tone for each audience, and logs every touch."],
-      ["Due diligence", "Coordinates inspections, summarizes reports, and tracks open items."],
-      ["Financing & appraisal", "Follows lender status, appraisal, and clear-to-close."],
-      ["Closing", "Runs the closing protocol, flags red flags, and guards against wire fraud."],
-      ["Post-close", "Handles the tail — remaining tasks, congratulations, review requests."],
-    ],
-    asks: [
-      "What deadlines are coming up this week?",
-      "What needs attention today?",
-      "Anything overdue across my files?",
-      "What is missing from this contract?",
-      "What documents are still missing?",
-      "Draft an update to the buyers.",
-      "Has appraisal been ordered?",
-      "Are we ready to close?",
-      "Any red flags before closing?",
-      "Does this email look suspicious?",
-    ],
+  {
+    msg: "“No activity for 3 min… timed out in 7 min…”",
+    meaning: "The system hasn't seen visible progress for a few minutes. The task may still be running. It's a timeout-protection warning — not data loss.",
+    todo: "Wait a little longer if it matters, or send /stop, /restart, or ask it to take a simpler approach.",
   },
-};
-
-// ============================================================================
-// PROMPT TEMPLATES  (filled from the setup bar)
-// ============================================================================
-
-const notionPrompt = (type, label) => {
-  // "Other" reuses the COS build, worded generically — every agent ships with the COS stack.
-  const title = type === "Transaction Coordinator" ? "AI Transaction Coordinator" : (type === "Chief of Staff" ? "AI Chief of Staff" : "AI agent");
-  if (type === "Transaction Coordinator") {
-    return `Notion is connected. Please build my ${title} launch dashboard now.
-
-Use your Notion Dashboard, Scheduled Automations, Morning Routine, EOD Routine, and Connection skills.
-
-Create a polished TC command center for active transactions, deadlines, document checklists, client/vendor follow-ups, handoffs, daily TC briefings, EOD summaries, pipeline review, activity logs, and connected tools.
-
-Use the tools and connections already available to you, make smart defaults where needed, and build a complete first version I can start using immediately.
-
-Also create and verify these automations:
-- Daily TC Briefing: 8:00am daily
-- EOD TC Summary: 4:30pm daily
-- Weekly Pipeline Review: Friday at 2:00pm, or the closest supported schedule pattern
-
-Do not ask setup questions unless something is truly blocked. Build it, verify it, and send me the Notion link plus a short summary of what you created.`;
-  }
-  return `Notion is connected. Please build my ${title} launch dashboard now.
-
-Use your Notion Dashboard, Morning Routine, EOD Routine, Scheduled Automations, and Connection skills.
-
-Create a polished Notion HQ for daily briefings, EOD summaries, priorities, projects, handoffs, follow-ups, activity logs, and connected tools.
-
-Use the tools and connections already available to you, make smart defaults where needed, and build a complete first version I can start using immediately.
-
-Also create and verify these automations:
-- Morning Briefing: 7:00am daily
-- EOD Summary: 5:30pm daily
-- Weekly Review: Friday at 3:00pm, or the closest supported schedule pattern
-
-Do not ask setup questions unless something is truly blocked. Build it, verify it, and send me the Notion link plus a short summary of what you created.`;
-};
+  {
+    msg: "“Context compression aborted… No messages were dropped”",
+    meaning: "The conversation got long and the system tried to tidy older context. The attempt stopped — but nothing was lost and the conversation is unchanged.",
+    todo: "Usually nothing. Send /new if the conversation feels too long or tangled.",
+  },
+];
 
 // ============================================================================
 // SMALL PIECES
@@ -198,27 +172,21 @@ Do not ask setup questions unless something is truly blocked. Build it, verify i
 
 const inputClass = "w-full px-4 py-3 bg-card border-2 border-ink/25 focus:border-ink focus:outline-none focus:shadow-brut-sm transition-all text-sm placeholder:text-ink/30";
 
-function PromptBox({ text }) {
+// Copyable command / phrase.
+function Cmd({ text, note }) {
   const [copied, setCopied] = useState(false);
   const copy = async () => {
     try { await navigator.clipboard.writeText(text); }
-    catch (e) {
-      const ta = document.createElement("textarea");
-      ta.value = text; document.body.appendChild(ta); ta.select();
-      document.execCommand("copy"); document.body.removeChild(ta);
-    }
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1600);
+    catch (e) { const ta = document.createElement("textarea"); ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand("copy"); document.body.removeChild(ta); }
+    setCopied(true); setTimeout(() => setCopied(false), 1400);
   };
   return (
-    <div className="border-2 border-ink bg-card">
-      <div className="p-4 mono text-[12px] leading-relaxed text-ink/85 whitespace-pre-wrap max-h-72 overflow-y-auto">{text}</div>
-      <button
-        onClick={copy}
-        className={`w-full display font-black text-xs uppercase tracking-widest border-t-2 border-ink px-4 py-3 transition-all ${copied ? "bg-accent text-ink" : "bg-ink text-accent hover:bg-ink/90"}`}
-      >
-        {copied ? "✓ Copied — paste it to your agent" : "⧉ Copy this message"}
+    <div className="flex flex-wrap items-center gap-2">
+      <code className="mono text-sm bg-ink text-accent px-3 py-2 border-2 border-ink">{text}</code>
+      <button onClick={copy} className={`mono text-[11px] uppercase tracking-widest font-semibold border-2 border-ink px-3 py-2 transition-colors ${copied ? "bg-accent text-ink" : "hover:bg-ink hover:text-paper"}`}>
+        {copied ? "Copied ✓" : "Copy"}
       </button>
+      {note && <span className="text-sm text-ink/60">{note}</span>}
     </div>
   );
 }
@@ -227,9 +195,7 @@ function Step({ n, title, blurb, children }) {
   return (
     <section data-step={n} className="border-2 border-ink bg-card shadow-brut mb-5">
       <header className="flex items-start gap-3 p-5 border-b-2 border-ink/10">
-        <div className="w-9 h-9 flex-shrink-0 flex items-center justify-center display font-black circle border-2 border-ink bg-ink text-accent">
-          {n}
-        </div>
+        <div className="w-9 h-9 flex-shrink-0 flex items-center justify-center display font-black circle border-2 border-ink bg-ink text-accent">{n}</div>
         <div className="flex-1 min-w-0">
           <h2 className="text-xl md:text-2xl">{title}</h2>
           {blurb && <p className="text-sm text-ink/70 mt-1.5 leading-relaxed">{blurb}</p>}
@@ -255,32 +221,25 @@ function Header() {
 // APP
 // ============================================================================
 
-const TOTAL_STEPS = 7;
+const TOTAL_STEPS = 11;
 
 function App() {
-  const [setup, setSetup] = useState({
-    clientName: "", clientEmail: "", agentName: "", agentType: "",
-    emailProvider: "", calProvider: "",
-    extraConnections: [],   // up to MAX_EXTRA_CONNECTIONS more tools
-  });
+  const [setup, setSetup] = useState({ clientName: "", clientEmail: "", agentName: "", agentType: "" });
   const [generated, setGenerated] = useState(false);
-  const [curStep, setCurStep] = useState(1);   // scroll-driven, purely a pacing cue
+  const [curStep, setCurStep] = useState(1);
   const [initials, setInitials] = useState("");
   const [phase, setPhase] = useState("run"); // run | submitting | complete | error
   const [errorMsg, setErrorMsg] = useState("");
 
   const up = (patch) => setSetup(s => ({ ...s, ...patch }));
 
-  // Track which step is in view so the header can show "Step 3 of 7" without
-  // asking the client to click anything.
+  // Scroll-driven "Step N of 11" — no clicks required.
   useEffect(() => {
     if (!generated) return;
     const onScroll = () => {
       const secs = [...document.querySelectorAll("section[data-step]")];
       let n = 1;
-      for (const s of secs) {
-        if (s.getBoundingClientRect().top <= 160) n = Number(s.dataset.step);
-      }
+      for (const s of secs) { if (s.getBoundingClientRect().top <= 160) n = Number(s.dataset.step); }
       setCurStep(n);
     };
     onScroll();
@@ -289,43 +248,16 @@ function App() {
   }, [generated]);
 
   const setupOk = setup.clientName.trim().length >= 2 && setup.agentName.trim().length >= 2 &&
-                  /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(setup.clientEmail.trim()) &&
-                  setup.agentType && setup.emailProvider.trim() && setup.calProvider.trim();
+                  /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(setup.clientEmail.trim()) && setup.agentType;
 
   const agent = setup.agentName.trim() || "your agent";
   const client = setup.clientName.trim() || "there";
-  const email = setup.emailProvider.trim() || "email";
-  const cal = setup.calProvider.trim() || "calendar";
-  const feat = setup.agentType === "Transaction Coordinator" ? FEATURES.tc : FEATURES.cos;
-
-  // Everything we're connecting on this call: the baseline 3 plus any extras they named.
-  const extras = setup.extraConnections.map(s => s.trim()).filter(Boolean);
-  const services = [email, cal, "Notion"].concat(extras);
-
-  const addConnection = () => setSetup(s =>
-    s.extraConnections.length >= MAX_EXTRA_CONNECTIONS ? s : { ...s, extraConnections: [...s.extraConnections, ""] });
-  const setConnection = (i, val) => setSetup(s => {
-    const next = [...s.extraConnections]; next[i] = val; return { ...s, extraConnections: next };
-  });
-  const removeConnection = (i) => setSetup(s => ({ ...s, extraConnections: s.extraConnections.filter((_, x) => x !== i) }));
-
-  const prompts = useMemo(() => ({
-    kickoff: `Hey ${agent}, this is ${client} — nice to finally meet you!
-
-Go ahead and absorb all your files and get yourself up to speed. Once you're ready, run your SN Connection Protocol for ${listOf(services)} — send me all the connection links at once so I can sign in to everything in one go.`,
-    spin: `I'm connected now. Please read through my inbox and tell me what's important today, then check my calendar and tell me what my week looks like.`,
-    dashboard: notionPrompt(setup.agentType),
-  }), [agent, client, email, cal, services.join("|"), setup.agentType]);
-
   const canSign = initials.trim().length >= 2;
 
   const generate = () => {
     if (!setupOk) return;
     setGenerated(true);
-    setTimeout(() => {
-      const el = document.getElementById("runofshow");
-      if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-    }, 60);
+    setTimeout(() => { const el = document.getElementById("runofshow"); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); }, 60);
   };
 
   const submit = async () => {
@@ -342,26 +274,16 @@ Go ahead and absorb all your files and get yourself up to speed. Once you're rea
         clientEmail: setup.clientEmail.trim(),
         agentName: setup.agentName.trim(),
         agentType: setup.agentType,
-        emailProvider: email,
-        calProvider: cal,
-        extraConnections: extras,
-        services: services,
         initials: initials.trim().toUpperCase(),
         capturedAt: new Date().toString(),
       };
-      await fetch(BACKEND_URL, {
-        method: "POST",
-        headers: { "Content-Type": "text/plain;charset=utf-8" },
-        body: JSON.stringify(payload),
-      });
+      await fetch(BACKEND_URL, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(payload) });
       if (typeof confetti === "function") {
         confetti({ particleCount: 120, spread: 90, startVelocity: 48, gravity: 0.9, ticks: 240, origin: { x: 0.5, y: 0.5 }, colors: ["#3EB8C8", "#181818", "#BBB469", "#F7F3EA"] });
       }
       setPhase("complete");
       window.scrollTo({ top: 0, behavior: "smooth" });
-    } catch (e) {
-      setErrorMsg(String(e)); setPhase("error");
-    }
+    } catch (e) { setErrorMsg(String(e)); setPhase("error"); }
   };
 
   if (phase === "complete") {
@@ -374,14 +296,15 @@ Go ahead and absorb all your files and get yourself up to speed. Once you're rea
             <div className="mono text-xs text-accent uppercase tracking-widest font-semibold mb-3">Launched</div>
             <h1 className="text-4xl mb-4">{agent} is live.</h1>
             <p className="text-ink/75 text-lg leading-relaxed mb-8">
-              Nice work, {client}. Your agent is connected, your dashboard is built, and you're good to go. Your confirmation and full feature sheet are on their way to <span className="font-semibold text-ink">{setup.clientEmail.trim()}</span>.
+              Nice work, {client}. You've met your AI Employee, started guided onboarding, and you know how to keep building from here. Any remaining tool connections, workspace setup, or automations can be done with your AI Employee whenever you're ready. Your confirmation and guide are on their way to <span className="font-semibold text-ink">{setup.clientEmail.trim()}</span>.
             </p>
             <div className="bg-card border-2 border-ink shadow-brut p-6 text-left">
               <div className="mono text-xs text-ink/60 uppercase tracking-widest font-semibold mb-3">From here</div>
               <ul className="text-sm text-ink/80 space-y-2 list-disc list-inside">
-                <li>Just talk to {agent} in Telegram like you would a teammate.</li>
-                <li>Your morning brief and EOD summary run automatically.</li>
-                <li>Need help? <a href={SUPPORT_URL} target="_blank" rel="noopener noreferrer" className="underline hover:text-accent font-semibold">Open a support ticket →</a></li>
+                <li>Message your AI Employee in Telegram like a teammate.</li>
+                <li>Send <span className="mono font-semibold">/onboard</span> to resume setup, <span className="mono font-semibold">/connect</span> to add tools.</li>
+                <li>Send <span className="mono font-semibold">/figureitout</span> if something gets stuck.</li>
+                <li>For billing, access, or new-tool requests, <a href={SUPPORT_URL} target="_blank" rel="noopener noreferrer" className="underline hover:text-accent font-semibold">open a support ticket →</a></li>
               </ul>
             </div>
           </div>
@@ -412,11 +335,11 @@ Go ahead and absorb all your files and get yourself up to speed. Once you're rea
           </div>
           <h1 className="text-4xl md:text-6xl mb-4">Launch day.</h1>
           <p className="text-ink/75 text-base md:text-lg leading-relaxed">
-            We'll get your agent connected to your tools, take it for a spin, and build your dashboard — together, right now. Start by telling us who we're launching.
+            Today we'll introduce you to your AI Employee, start guided onboarding, review the core commands, and show you how to keep building from there. Start by telling us who we're launching.
           </p>
         </div>
 
-        {/* SETUP */}
+        {/* LIGHT SETUP */}
         <section className="border-2 border-ink bg-card shadow-brut p-6 mb-10">
           <div className="mono text-xs text-ink/60 uppercase tracking-widest font-semibold mb-5">Quick setup</div>
           <div className="grid sm:grid-cols-2 gap-4">
@@ -433,7 +356,7 @@ Go ahead and absorb all your files and get yourself up to speed. Once you're rea
           <div className="mt-5">
             <label className="block mono text-[11px] font-semibold uppercase tracking-widest text-ink/80 mb-2">Your email <span className="text-accent">*</span></label>
             <input type="email" value={setup.clientEmail} onChange={e => up({ clientEmail: e.target.value })} placeholder="mike@company.com" className={inputClass} />
-            <p className="text-xs text-ink/50 mt-1.5">We'll send your launch confirmation and feature sheet here.</p>
+            <p className="text-xs text-ink/50 mt-1.5">We'll send your launch confirmation and guide here.</p>
           </div>
 
           <div className="mt-5">
@@ -448,96 +371,74 @@ Go ahead and absorb all your files and get yourself up to speed. Once you're rea
             </div>
           </div>
 
-          <div className="grid sm:grid-cols-2 gap-4 mt-5">
-            <div>
-              <label className="block mono text-[11px] font-semibold uppercase tracking-widest text-ink/80 mb-2">Your email provider <span className="text-accent">*</span></label>
-              <input type="text" value={setup.emailProvider} onChange={e => up({ emailProvider: e.target.value })} placeholder="your email provider" className={inputClass} />
-            </div>
-            <div>
-              <label className="block mono text-[11px] font-semibold uppercase tracking-widest text-ink/80 mb-2">Your calendar <span className="text-accent">*</span></label>
-              <input type="text" value={setup.calProvider} onChange={e => up({ calProvider: e.target.value })} placeholder="your calendar provider" className={inputClass} />
-            </div>
-          </div>
-          <p className="text-xs text-ink/50 mt-2">Notion is included automatically.</p>
-
-          {/* Optional extra tools — capped so a launch call stays at 5 links */}
-          {setup.extraConnections.length > 0 && (
-            <div className="mt-4 space-y-3">
-              {setup.extraConnections.map((val, i) => (
-                <div key={i}>
-                  <label className="block mono text-[11px] font-semibold uppercase tracking-widest text-ink/80 mb-2">Another tool to connect</label>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="text"
-                      value={val}
-                      onChange={e => setConnection(i, e.target.value)}
-                      placeholder={CONNECTION_SUGGESTIONS}
-                      className={inputClass}
-                    />
-                    <button type="button" onClick={() => removeConnection(i)}
-                      className="w-10 h-10 flex-shrink-0 border-2 border-ink/25 hover:border-ink text-ink/60 hover:text-ink font-black" aria-label="Remove">✕</button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {setup.extraConnections.length < MAX_EXTRA_CONNECTIONS && (
-            <button type="button" onClick={addConnection}
-              className="mt-3 mono text-[11px] font-semibold uppercase tracking-widest text-accent hover:text-ink border-2 border-accent hover:border-ink px-4 py-2 transition-colors">
-              + Add {setup.extraConnections.length === 0 ? "another connection" : "one more connection"}
-            </button>
-          )}
-          {setup.extraConnections.length >= MAX_EXTRA_CONNECTIONS && (
-            <p className="text-xs text-ink/45 mt-3">That's five connections — plenty for one call. We can add more anytime after launch.</p>
-          )}
-
-          {/* Pre-flight — have both of these open before we start */}
+          {/* Pre-flight */}
           <div className="mt-6 border-2 border-ink bg-accentSoft p-5">
-            <div className="mono text-[11px] uppercase tracking-widest font-semibold text-ink/70 mb-3">Before we start — open these two</div>
+            <div className="mono text-[11px] uppercase tracking-widest font-semibold text-ink/70 mb-3">Before we start</div>
             <ul className="text-sm text-ink/80 space-y-2.5 list-disc list-inside">
-              <li><span className="font-semibold">Telegram</span> — you'll be messaging your agent here, so have it open and ready.</li>
-              <li><span className="font-semibold">Notion</span> — open <a href="https://notion.so" target="_blank" rel="noopener noreferrer" className="underline hover:text-accent font-semibold">notion.so</a> and make sure you're signed in. When you connect it in a moment, grant your agent access to your workspace and it'll build its own space from there.</li>
+              <li>Open <span className="font-semibold">Telegram</span> and find your AI Employee.</li>
+              <li>Make sure you can log into any app accounts you might want to connect today.</li>
+              <li>No need to prepare anything — your AI Employee guides setup with <span className="mono font-semibold">/onboard</span>.</li>
             </ul>
           </div>
 
           <button onClick={generate} disabled={!setupOk}
             className="mt-6 w-full display font-black text-sm uppercase tracking-widest bg-accent text-ink border-2 border-ink px-6 py-4 shadow-brut hover:shadow-brut-hover hover:-translate-x-0.5 hover:-translate-y-0.5 disabled:bg-ink/10 disabled:text-ink/30 disabled:shadow-none disabled:cursor-not-allowed disabled:hover:translate-x-0 disabled:hover:translate-y-0 transition-all">
-            {generated ? "↻ Regenerate" : "Everything's ready — let's go →"}
+            {generated ? "↻ Regenerate" : "Start launch walkthrough →"}
           </button>
         </section>
 
         {!generated && (
-          <p className="text-center text-sm text-ink/45 mb-10">Fill in the setup above and hit generate — your walkthrough appears here.</p>
+          <p className="text-center text-sm text-ink/45 mb-10">Fill in the setup above and hit start — your walkthrough appears here.</p>
         )}
 
         {generated && (
           <div id="runofshow" className="fade-in">
 
-            <Step n={1} title={`Meet ${agent} and connect your tools`}
-              blurb={`Open Telegram and send this one message. It wakes your agent up, gets it up to speed on your files, and pulls all ${services.length} connection links at once — ${listOf(services)}. Sign in to each, then tick them off.`}>
-              <PromptBox text={prompts.kickoff} />
-              <div className="mt-4 border-2 border-ink/15 bg-paper p-4">
-                <div className="mono text-[11px] uppercase tracking-widest font-semibold text-ink/60 mb-3">You'll get {services.length} links — sign in to each</div>
-                <div className="flex flex-wrap gap-2">
-                  {services.map((label) => (
-                    <span key={label} className="text-sm text-ink/80 bg-card border-2 border-ink/20 px-3 py-1.5">{label}</span>
+            <Step n={1} title={`Meet ${agent}`}
+              blurb="Open Telegram and say hello. Your AI Employee will respond and guide the next step — no long prompts to paste.">
+              <Cmd text="/start" note="or just say: “Hi, I’m ready to get set up.”" />
+            </Step>
+
+            <Step n={2} title="Start guided onboarding"
+              blurb="This is the core of setup. Your AI Employee walks you through it directly — you don't paste a launch script.">
+              <Cmd text="/onboard" />
+              <div className="mt-4 mono text-[11px] uppercase tracking-widest font-semibold text-ink/60 mb-3">What it covers</div>
+              <div className="space-y-2">
+                {ONBOARD_COVERS.map(([t, d]) => (
+                  <div key={t} className="flex gap-3 border-2 border-ink/15 bg-paper p-3">
+                    <div className="w-1.5 flex-shrink-0 bg-accent"></div>
+                    <div className="min-w-0">
+                      <div className="text-sm font-semibold text-ink">{t}</div>
+                      <div className="text-xs text-ink/65 leading-relaxed mt-0.5">{d}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <p className="text-sm text-ink/60 mt-4">You can skip, pause, or resume onboarding anytime by sending <span className="mono font-semibold">/onboard</span> again.</p>
+            </Step>
+
+            <Step n={3} title="Connect your tools"
+              blurb="When you're ready to link an app, your AI Employee sends a secure connection link. Connect what you want, in the order you want.">
+              <Cmd text="/connect" note="or just ask: “Can you help me connect [tool]?”" />
+              <ul className="text-sm text-ink/80 space-y-2 list-disc list-inside mt-4">
+                <li>Connections happen through <span className="font-semibold">secure links</span> — never paste passwords or raw tokens into chat.</li>
+                <li>Your AI Employee won't claim a tool is connected until it verifies the connection.</li>
+                <li>Most common tools connect through a link. If one needs extra setup, your AI Employee or Strategy Ninjas will explain the next step.</li>
+              </ul>
+            </Step>
+
+            <Step n={4} title="Take it for a spin"
+              blurb="Ask your AI Employee to do one useful, low-risk thing while we're on the call. A few ideas:">
+              <div className="border-2 border-ink bg-accentSoft p-4">
+                <div className="grid gap-2">
+                  {SPIN_EXAMPLES.map(q => (
+                    <div key={q} className="text-sm text-ink/80 leading-snug"><span className="text-accent font-bold mr-1.5">›</span>{q}</div>
                   ))}
                 </div>
               </div>
             </Step>
 
-            <Step n={2} title="Take it for a spin"
-              blurb="This proves the connections work — and gives your agent real context about your week before it builds anything.">
-              <PromptBox text={prompts.spin} />
-            </Step>
-
-            <Step n={3} title="Build your dashboard"
-              blurb="Now that it knows what's going on in your world, your agent builds your Notion HQ using that context. This one takes a few minutes to run — good time to talk through what's coming next.">
-              <PromptBox text={prompts.dashboard} />
-            </Step>
-
-            <Step n={4} title={`Give ${agent} a face`}
+            <Step n={5} title={`Give ${agent} a face`}
               blurb="If you picked a face at signup, set it now. If not, grab one from the library.">
               <div className="bg-accentSoft border-2 border-ink p-4">
                 <div className="mono text-[11px] text-ink/70 uppercase tracking-widest font-semibold mb-3">Two ways to set it</div>
@@ -550,78 +451,91 @@ Go ahead and absorb all your files and get yourself up to speed. Once you're rea
                   <p className="text-sm text-ink/80">Message <span className="mono font-semibold">@BotFather</span>, send <span className="mono font-semibold">/setuserpic</span>, choose your bot, and upload the image.</p>
                 </div>
               </div>
-              <p className="text-sm text-ink/60 mt-3">
-                Need a picture? <a href={PFP_FOLDER_URL} target="_blank" rel="noopener noreferrer" className="underline hover:text-accent font-semibold">Browse the face library →</a>
-              </p>
+              <p className="text-sm text-ink/60 mt-3">Need a picture? <a href={PFP_FOLDER_URL} target="_blank" rel="noopener noreferrer" className="underline hover:text-accent font-semibold">Browse the face library →</a></p>
             </Step>
 
-            <Step n={5} title={`What ${agent} can do`}
-              blurb="The tour. What runs on its own, what it handles day to day, and what to actually say to it.">
+            <Step n={6} title={`What ${agent} can do`}
+              blurb="The tour — what it helps with, what to actually say to it, and the automations it can set up with your OK.">
 
-              <div className="mono text-[11px] uppercase tracking-widest font-semibold text-ink/60 mb-3">Runs on its own</div>
-              <div className="space-y-2">
-                {feat.rhythm.map(([t, d]) => (
-                  <div key={t} className="flex gap-3 border-2 border-ink/15 bg-paper p-3">
-                    <div className="w-1.5 flex-shrink-0 bg-accent"></div>
-                    <div className="min-w-0">
-                      <div className="text-sm font-semibold text-ink">{t}</div>
-                      <div className="text-xs text-ink/65 leading-relaxed mt-0.5">{d}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="mono text-[11px] uppercase tracking-widest font-semibold text-ink/60 mt-6 mb-3">What it handles</div>
+              <div className="mono text-[11px] uppercase tracking-widest font-semibold text-ink/60 mb-3">What it helps with</div>
               <div className="grid sm:grid-cols-2 gap-2.5">
-                {feat.handles.map(([t, d]) => (
-                  <div key={t} className="border-2 border-ink/15 bg-paper p-3">
-                    <div className="text-sm font-semibold text-ink mb-1">{t}</div>
-                    <div className="text-xs text-ink/65 leading-relaxed">{d}</div>
-                  </div>
+                {CAPABILITIES.map(c => (
+                  <div key={c} className="text-sm text-ink/80 border-2 border-ink/15 bg-paper p-3 leading-snug">{c}</div>
                 ))}
               </div>
 
               <div className="mono text-[11px] uppercase tracking-widest font-semibold text-ink/60 mt-6 mb-3">Things to try asking</div>
               <div className="border-2 border-ink bg-accentSoft p-4">
                 <div className="grid sm:grid-cols-2 gap-x-5 gap-y-2">
-                  {feat.asks.map(q => (
-                    <div key={q} className="text-sm text-ink/80 leading-snug">
-                      <span className="text-accent font-bold mr-1.5">›</span>{q}
-                    </div>
+                  {ASKS.map(q => (
+                    <div key={q} className="text-sm text-ink/80 leading-snug"><span className="text-accent font-bold mr-1.5">›</span>{q}</div>
                   ))}
                 </div>
-                <p className="text-xs text-ink/55 mt-4 pt-3 border-t border-ink/15">
-                  You don't need special commands — talk to {agent} in plain English, like a teammate.
-                </p>
+                <p className="text-xs text-ink/55 mt-4 pt-3 border-t border-ink/15">No special commands needed — talk to {agent} in plain English, like a teammate.</p>
               </div>
 
-              <div className="mt-4 border-2 border-ink bg-ink text-paper p-5">
-                <div className="mono text-[11px] uppercase tracking-widest font-semibold text-accent mb-2">Adding tools later</div>
-                <p className="text-sm text-paper/85 leading-relaxed">
-                  Want {agent} connected to something new? Just ask — say <span className="font-semibold text-paper">"connect me to [tool]"</span> or <span className="font-semibold text-paper">"run your SN Connection Protocol"</span> and it'll send you a link.
-                </p>
-                <p className="text-sm text-paper/70 leading-relaxed mt-3">
-                  Most popular platforms are ready to go. A few need extra work on our side — a custom API build or similar. If there's a connection that would really move the needle for you, tell us and we'll scope it.
-                </p>
-              </div>
-
-              <div className="mt-5 border-2 border-ink bg-card p-4">
-                <div className="text-sm font-semibold text-ink mb-1.5">What to expect early on</div>
-                <p className="text-sm text-ink/70 leading-relaxed">
-                  The first week is a settling-in period. Correct {agent} when it gets something wrong — that's exactly how it learns your preferences. By week two it should feel like it knows you. It also gets new skills and tool connections over time as your needs change.
-                </p>
+              <div className="mono text-[11px] uppercase tracking-widest font-semibold text-ink/60 mt-6 mb-3">Automations, if you want them</div>
+              <div className="border-2 border-ink/15 bg-paper p-4">
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {AUTOMATIONS.map(a => (
+                    <span key={a} className="text-sm text-ink/80 bg-card border-2 border-ink/20 px-3 py-1.5">{a}</span>
+                  ))}
+                </div>
+                <p className="text-sm text-ink/70 leading-relaxed">Your AI Employee can set up recurring briefings, reminders, or summaries. It'll ask what you want, when you want it, and where it should be delivered before creating anything recurring.</p>
               </div>
 
               {setup.agentType && (
                 <a href={SHEETS[setup.agentType]} target="_blank" rel="noopener noreferrer"
                   className="mt-4 inline-block mono text-[11px] uppercase tracking-widest font-semibold text-accent hover:text-ink underline decoration-2 underline-offset-2">
-                  Open the full feature sheet →
+                  Open the full guide →
                 </a>
               )}
             </Step>
 
-            <Step n={6} title="Your subscription"
-              blurb="Get your managed service started now so nothing pauses after launch.">
+            <Step n={7} title="Useful commands"
+              blurb="Type these in Telegram anytime. Tap any to copy.">
+              <div className="grid sm:grid-cols-2 gap-2.5">
+                {COMMANDS.map(([c, d]) => (
+                  <div key={c} className="border-2 border-ink/15 bg-paper p-3">
+                    <code className="mono text-sm font-semibold text-ink">{c}</code>
+                    <div className="text-xs text-ink/65 leading-relaxed mt-1">{d}</div>
+                  </div>
+                ))}
+              </div>
+            </Step>
+
+            <Step n={8} title="Messages that look scary but usually aren’t"
+              blurb="Telegram will sometimes show system status notices. Here's what the common ones mean.">
+              <div className="space-y-3">
+                {STATUS_MSGS.map((s) => (
+                  <div key={s.msg} className="border-2 border-ink/15 bg-paper p-4">
+                    <div className="mono text-sm font-semibold text-ink mb-1.5">{s.msg}</div>
+                    <p className="text-sm text-ink/70 leading-relaxed"><span className="font-semibold text-ink">What it means: </span>{s.meaning}</p>
+                    <p className="text-sm text-ink/70 leading-relaxed mt-1"><span className="font-semibold text-ink">What to do: </span>{s.todo}</p>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-4 border-2 border-ink bg-ink text-paper p-5">
+                <div className="mono text-[11px] uppercase tracking-widest font-semibold text-accent mb-2">If something gets stuck</div>
+                <p className="text-sm text-paper/85 leading-relaxed">
+                  Send <span className="mono font-semibold text-paper">/figureitout</span>. Your AI Employee will diagnose the issue, try safe non-destructive fixes, look for another path, and keep going if it can. It always asks first before anything risky, paid, destructive, or before sending an external message.
+                </p>
+              </div>
+              <p className="text-sm text-ink/55 mt-3">Unsure about a message? Just ask your AI Employee what happened, or send <span className="mono font-semibold">/figureitout</span>.</p>
+            </Step>
+
+            <Step n={9} title="What to expect early on"
+              blurb="The first few days are a calibration period.">
+              <p className="text-sm text-ink/75 leading-relaxed">
+                Correct {agent} when its tone, priorities, or assumptions are off — clear feedback is exactly how it adapts to how you work. It also picks up new skills and tool connections over time as your needs change.
+              </p>
+              <p className="text-sm text-ink/70 leading-relaxed mt-3">
+                Handy anytime: <span className="mono font-semibold">/new</span> for a fresh topic, <span className="mono font-semibold">/stop</span> to cancel work, and <span className="mono font-semibold">/figureitout</span> when something gets stuck.
+              </p>
+            </Step>
+
+            <Step n={10} title="Your subscription"
+              blurb="Set up your managed service so your AI Employee keeps running after launch.">
               <a href={PAYMENT_URL} target="_blank" rel="noopener noreferrer"
                 className="block w-full text-center display font-black text-sm uppercase tracking-widest bg-ink text-accent border-2 border-ink px-6 py-4 shadow-brut hover:bg-accent hover:text-ink transition-all">
                 Set up my subscription →
@@ -629,12 +543,12 @@ Go ahead and absorb all your files and get yourself up to speed. Once you're rea
               <p className="text-xs text-ink/50 mt-3">Opens our secure payment page in a new tab. Come back here when you're done.</p>
             </Step>
 
-            <Step n={7} title="Getting support"
-              blurb="Anything breaks, anything confusing, anything you want added — this is where you go.">
+            <Step n={11} title="Getting support"
+              blurb="For everyday work, just ask your AI Employee. For billing, access issues, broken integrations, or new-tool requests that need Strategy Ninjas — use the support desk.">
               <div className="border-2 border-ink bg-card p-6 text-center">
                 <div className="mono text-[11px] uppercase tracking-widest font-semibold text-accent mb-2">Support desk</div>
                 <p className="text-sm text-ink/75 leading-relaxed mb-5 max-w-md mx-auto">
-                  Anything you need — a fix, a question, or a new tool connection — goes through our support desk. Bookmark it now so it's always one click away, then open a ticket whenever you need something.
+                  Bookmark it now so it's always one click away, then open a ticket whenever you need something.
                 </p>
                 <a href={SUPPORT_URL} target="_blank" rel="noopener noreferrer"
                   className="inline-block display font-black text-sm uppercase tracking-widest bg-ink text-accent border-2 border-ink px-8 py-4 shadow-brut hover:bg-accent hover:text-ink transition-all">
@@ -649,19 +563,14 @@ Go ahead and absorb all your files and get yourself up to speed. Once you're rea
               <div className="mono text-xs text-accent uppercase tracking-widest font-semibold mb-3">Sign off</div>
               <h2 className="text-2xl md:text-3xl text-paper mb-3">All set?</h2>
               <p className="text-paper/70 text-sm leading-relaxed mb-6">
-                Pop your initials below to confirm we walked through everything on this page together and you know how to use {agent}. We'll send your confirmation and full feature sheet to {setup.clientEmail.trim() || "your email"}.
+                Pop your initials below to confirm we introduced {agent}, started guided onboarding, reviewed the command menu, and showed you where to get support. We'll send your confirmation and full guide to {setup.clientEmail.trim() || "your email"}.
               </p>
 
               <div className="flex flex-col sm:flex-row gap-3">
-                <input
-                  type="text" value={initials} onChange={e => setInitials(e.target.value.slice(0, 5))}
-                  placeholder="Your initials" maxLength={5}
-                  className="flex-1 px-4 py-4 bg-paper text-ink border-2 border-paper focus:outline-none display font-black text-center text-xl uppercase tracking-[0.3em] placeholder:text-ink/25 placeholder:tracking-normal placeholder:font-normal placeholder:text-sm"
-                />
-                <button
-                  onClick={submit} disabled={!canSign || phase === "submitting"}
-                  className="display font-black text-sm uppercase tracking-widest bg-accent text-ink border-2 border-accent px-8 py-4 hover:bg-paper hover:border-paper disabled:bg-paper/20 disabled:border-paper/20 disabled:text-paper/40 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-3"
-                >
+                <input type="text" value={initials} onChange={e => setInitials(e.target.value.slice(0, 5))} placeholder="Your initials" maxLength={5}
+                  className="flex-1 px-4 py-4 bg-paper text-ink border-2 border-paper focus:outline-none display font-black text-center text-xl uppercase tracking-[0.3em] placeholder:text-ink/25 placeholder:tracking-normal placeholder:font-normal placeholder:text-sm" />
+                <button onClick={submit} disabled={!canSign || phase === "submitting"}
+                  className="display font-black text-sm uppercase tracking-widest bg-accent text-ink border-2 border-accent px-8 py-4 hover:bg-paper hover:border-paper disabled:bg-paper/20 disabled:border-paper/20 disabled:text-paper/40 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-3">
                   {phase === "submitting" ? (
                     <>
                       <svg className="spin-slow circle" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#181818" strokeWidth="3" strokeLinecap="round"><circle cx="12" cy="12" r="9" strokeDasharray="40 60" /></svg>
