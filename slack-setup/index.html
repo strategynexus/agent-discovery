@@ -500,15 +500,15 @@
     <li class="flex gap-4">
       <div class="w-8 h-8 flex-shrink-0 bg-ink text-accent display font-black flex items-center justify-center circle border-2 border-ink text-sm">4</div>
       <div class="pt-1">
-        <div class="text-sm font-semibold text-ink">Choose “From a manifest.”</div>
-        <div class="text-sm text-ink/65 mt-0.5">Then pick your workspace and continue.</div>
+        <div class="text-sm font-semibold text-ink">Choose “From an app manifest.”</div>
+        <div class="text-sm text-ink/65 mt-0.5">Then select your workspace and continue.</div>
       </div>
     </li>
     <li class="flex gap-4">
       <div class="w-8 h-8 flex-shrink-0 bg-ink text-accent display font-black flex items-center justify-center circle border-2 border-ink text-sm">5</div>
       <div class="pt-1">
-        <div class="text-sm font-semibold text-ink">Paste the setup text and confirm.</div>
-        <div class="text-sm text-ink/65 mt-0.5">Delete any sample text that's already in the box first, then paste. If it offers a preview, that's normal — continue.</div>
+        <div class="text-sm font-semibold text-ink">Paste the setup text, then click “Next.”</div>
+        <div class="text-sm text-ink/65 mt-0.5">Delete any sample text that's already in the box first, then paste. A preview/summary screen is normal — continue.</div>
       </div>
     </li>
     <li class="flex gap-4">
@@ -525,8 +525,8 @@
         <div class="text-sm text-ink/65 mt-0.5 leading-relaxed">
           You'll copy two keys and send them to us in the next step:
           <ul class="mt-2 space-y-1">
-            <li>• <span class="font-semibold text-ink">Bot Token</span> — starts with <span class="mono bg-accentSoft px-1.5 py-0.5 border border-ink/20">xoxb-</span>, under “OAuth &amp; Permissions.”</li>
-            <li>• <span class="font-semibold text-ink">App-Level Token</span> — starts with <span class="mono bg-accentSoft px-1.5 py-0.5 border border-ink/20">xapp-</span>, under “Basic Information → App-Level Tokens.”</li>
+            <li>• <span class="font-semibold text-ink">Bot User OAuth Token</span> — starts with <span class="mono bg-accentSoft px-1.5 py-0.5 border border-ink/20">xoxb-</span>, under “OAuth &amp; Permissions.”</li>
+            <li>• <span class="font-semibold text-ink">App-Level Token</span> — starts with <span class="mono bg-accentSoft px-1.5 py-0.5 border border-ink/20">xapp-</span> (usually the default app token), under “Basic Information → App-Level Tokens.”</li>
           </ul>
           <span class="text-ink/55">We'll point you to exactly where these live on the call.</span>
         </div>
@@ -534,8 +534,17 @@
     </li>
   </ol>
 
+  <!-- Hold off warning -->
+  <div class="border-2 border-gold bg-gold/15 p-4 mt-8 flex gap-3">
+    <div class="text-2xl leading-none">✋</div>
+    <div>
+      <div class="text-sm font-semibold text-ink mb-0.5">One thing — don't invite Kaya into any Slack channels yet.</div>
+      <p class="text-sm text-ink/75 leading-relaxed">Wait until Strategy Ninjas tells you she's fully wired and ready. We have a couple of finishing touches to make first, and inviting her early can cause hiccups.</p>
+    </div>
+  </div>
+
   <!-- Send keys -->
-  <div class="border-2 border-ink bg-darkCard text-paper shadow-brut p-6 mt-12">
+  <div class="border-2 border-ink bg-darkCard text-paper shadow-brut p-6 mt-8">
     <div class="mono text-[11px] text-accent uppercase tracking-widest font-semibold mb-2">Last step — send us your two keys</div>
     <h2 class="text-2xl text-paper mb-3">These two ARE secret.</h2>
     <p class="text-paper/75 text-sm leading-relaxed mb-5">
@@ -546,7 +555,7 @@
       🔐 Send my keys securely →
     </a>
     <p class="text-paper/60 text-xs mt-4 leading-relaxed">
-      On that page, add two entries — label one <span class="mono text-paper/80">Slack Bot Token</span> (paste the <span class="mono">xoxb-</span> key) and one <span class="mono text-paper/80">Slack App Token</span> (paste the <span class="mono">xapp-</span> key) — then submit.
+      On that page, add two entries — label one <span class="mono text-paper/80">Slack Bot User OAuth Token</span> (paste the <span class="mono">xoxb-</span> key) and one <span class="mono text-paper/80">Slack App-Level Token</span> (paste the <span class="mono">xapp-</span> key) — then submit.
     </p>
   </div>
 
