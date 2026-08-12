@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Strategy Ninjas — Add Kaya to Slack</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700;900&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Source+Serif+4:ital,wght@0,400;0,600;0,700;0,900;1,400&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    corePlugins: { preflight: true },
+    theme: { extend: {
+      fontFamily: {
+        sans: ['Inter', 'system-ui', 'sans-serif'],
+        display: ['"Space Grotesk"', 'system-ui', 'sans-serif'],
+        serif: ['"Source Serif 4"', 'Georgia', 'serif'],
+        mono: ['JetBrains Mono', 'monospace'],
+      },
+      colors: { ink: '#181818', paper: '#F7F3EA', card: '#FFFFFF', darkCard: '#101010', accent: '#3EB8C8', accentSoft: '#E8F6F8', gold: '#BBB469' },
+      boxShadow: { brut: '6px 6px 0 0 #181818', 'brut-sm': '4px 4px 0 0 #181818', 'brut-lg': '14px 14px 0 0 #181818', 'brut-hover': '8px 8px 0 0 #181818' },
+      borderRadius: { DEFAULT: '0', none: '0', sm: '0', md: '0', lg: '0', xl: '0', '2xl': '0', full: '0' },
+    } },
+  };
+</script>
+<style>
+  body { font-family: 'Inter', sans-serif; background: #F7F3EA; color: #181818; -webkit-font-smoothing: antialiased; }
+  .display { font-family: 'Space Grotesk', system-ui, sans-serif; }
+  .mono { font-family: 'JetBrains Mono', monospace; }
+  .serif { font-family: 'Source Serif 4', Georgia, serif; }
+  h1, h2, h3 { font-family: 'Source Serif 4', Georgia, serif; font-weight: 900; text-transform: uppercase; letter-spacing: -0.01em; line-height: 0.95; }
+  h1 { letter-spacing: -0.02em; line-height: 0.94; }
+  button, input, textarea, [class*="rounded"] { border-radius: 0 !important; }
+  .circle { border-radius: 9999px !important; }
+  ::selection { background: #3EB8C8; color: #181818; }
+  textarea { resize: vertical; }
+</style>
+</head>
+<body>
+<div class="max-w-2xl mx-auto px-5 pb-24">
+
+  <!-- Header -->
+  <header class="flex items-center gap-3 py-6 border-b-2 border-ink mb-10">
+    <img src="../sn-logo.png" alt="Strategy Ninjas" class="h-9 w-auto block flex-shrink-0" />
+    <span class="w-px h-6 bg-ink/30"></span>
+    <span class="mono text-xs uppercase tracking-[0.25em] text-ink/70 font-semibold">Slack Setup</span>
+  </header>
+
+  <!-- Intro -->
+  <div class="mono text-[11px] text-accent uppercase tracking-[0.25em] font-semibold mb-3">Add your agent to Slack</div>
+  <h1 class="text-5xl mb-4">Meet Kaya, in Slack.</h1>
+  <p class="serif text-lg text-ink/75 leading-snug mb-6 max-w-xl">
+    Let's get Kaya set up in your Slack. It's just copy and paste &mdash; no coding, and it takes a couple of minutes. Copy the setup text below, paste it into Slack, then send us two keys at the end.
+  </p>
+
+  <!-- Reassurance -->
+  <div class="border-2 border-ink bg-accentSoft p-4 mb-8 flex gap-3">
+    <div class="text-2xl leading-none">🔒</div>
+    <div>
+      <div class="text-sm font-semibold text-ink mb-0.5">This setup text is safe to copy.</div>
+      <p class="text-sm text-ink/75 leading-relaxed">It holds <span class="font-semibold">no passwords and no secrets</span>. It simply tells Slack what to name your agent and what it's allowed to do. The only sensitive part &mdash; your two keys &mdash; comes later, and we'll collect those securely.</p>
+    </div>
+  </div>
+
+  <!-- Manifest -->
+  <div class="mono text-[11px] text-ink/60 uppercase tracking-widest font-semibold mb-2">Your Slack setup text</div>
+  <div class="border-2 border-ink bg-card">
+    <textarea id="manifest" readonly spellcheck="false" class="w-full h-72 mono text-[11px] leading-relaxed p-4 bg-card text-ink/85 focus:outline-none">{
+  "_metadata": {
+    "major_version": 1,
+    "minor_version": 1
+  },
+  "display_information": {
+    "name": "Kaya",
+    "description": "Strategy Ninjas Chief of Staff agent for Taniguchi &amp; Associates",
+    "background_color": "#1a1a2e"
+  },
+  "features": {
+    "app_home": {
+      "home_tab_enabled": false,
+      "messages_tab_enabled": true,
+      "messages_tab_read_only_enabled": false
+    },
+    "bot_user": {
+      "display_name": "Kaya",
+      "always_online": true
+    },
+    "slash_commands": [
+      {
+        "command": "/hermes",
+        "description": "Talk to Hermes or run a subcommand",
+        "should_escape": false,
+        "url": "https://hermes-agent.local/slack/commands",
+        "usage_hint": "[subcommand] [args]"
+      },
+      {
+        "command": "/btw",
+        "description": "Alias for /background — Run a prompt in the background",
+        "should_escape": false,
+        "url": "https://hermes-agent.local/slack/commands",
+        "usage_hint": "<prompt>"
+      },
+      {
+        "command": "/bg",
+        "description": "Alias for /background — Run a prompt in the background",
+        "should_escape": false,
+        "url": "https://hermes-agent.local/slack/commands",
+        "usage_hint": "<prompt>"
+      },
+      {
+        "command": "/start",
+        "description": "Acknowledge platform start pings without a reply",
+        "should_escape": false,
+        "url": "https://hermes-agent.local/slack/commands"
+      },
+      {
+        "command": "/new",
+        "description": "Start a new session (fresh session ID + history)",
+        "should_escape": false,
+        "url": "https://hermes-agent.local/slack/commands",
+        "usage_hint": "[name]"
+      },
+      {
+        "command": "/retry",
+        "description": "Retry the last message (resend to agent)",
+        "should_escape": false,
+        "url": "https://hermes-agent.local/slack/commands"
+      },
+      {
+        "command": "/undo",
+        "description": "Back up N user turns and re-prompt (default 1)",
+        "should_escape": false,
+        "url": "https://hermes-agent.local/slack/commands",
+        "usage_hint": "[N]"
+      },
+      {
+        "command": "/title",
+        "description": "Set a title for the current session",
+        "should_escape": false,
+        "url": "https://hermes-agent.local/slack/commands",
+        "usage_hint": "[name]"
+      },
+      {
+        "command": "/branch",
+        "description": "Branch the current session (explore a different path)",
+        "should_escape": false,
+        "url": "https://hermes-agent.local/slack/commands",
+        "usage_hint": "[name]"
+      },
+      {
+        "command": "/compress",
+        "description": "Compress conversation context (add 'here [N]' to keep recent N turns; --preview shows what would happen)",
+        "should_escape": false,
+        "url": "https://hermes-agent.local/slack/commands",
+        "usage_hint": "[here [N] | focus topic | --preview|--dry-run]"
+      },
+      {
+        "command": "/rollback",
+        "description": "List or restore filesystem checkpoints",
+        "should_escape": false,
+        "url": "https://hermes-agent.local/slack/commands",
+        "usage_hint": "[number]"
+      },
+      {
+        "command": "/stop",
+        "description": "Kill all running background processes",
+        "should_escape": false,
+        "url": "https://hermes-agent.local/slack/commands"
+      },
+      {
+        "command": "/approve",
+        "description": "Approve a pending dangerous command",
+        "should_escape": false,
+        "url": "https://hermes-agent.local/slack/commands",
+        "usage_hint": "[session|always]"
+      },
+      {
+        "command": "/deny",
+        "description": "Deny a pending dangerous command (optionally with a reason)",
+        "should_escape": false,
+        "url": "https://hermes-agent.local/slack/commands",
+        "usage_hint": "[all] [reason]"
+      },
+      {
+        "command": "/background",
+        "description": "Run a prompt in the background",
+        "should_escape": false,
+        "url": "https://hermes-agent.local/slack/commands",
+        "usage_hint": "<prompt>"
+      },
+      {
+        "command": "/agents",
+        "description": "Show active agents and running tasks",
+        "should_escape": false,
+        "url": "https://hermes-agent.local/slack/commands"
+      },
+      {
+        "command": "/queue",
+        "description": "Queue a prompt for the next turn (doesn't interrupt)",
+        "should_escape": false,
+        "url": "https://hermes-agent.local/slack/commands",
+        "usage_hint": "<prompt>"
+      },
+      {
+        "command": "/steer",
+        "description": "Inject a message after the next tool call without interrupting",
+        "should_escape": false,
+        "url": "https://hermes-agent.local/slack/commands",
+        "usage_hint": "<prompt>"
+      },
+      {
+        "command": "/goal",
+        "description": "Set a standing goal Hermes works on across turns until achieved",
+        "should_escape": false,
+        "url": "https://hermes-agent.local/slack/commands",
+        "usage_hint": "[text | draft <text> | show | pause | resume | clear | status | wait <pid> | unwait]"
+      },
+      {
+        "command": "/subgoal",
+        "description": "Add or manage extra criteria on the active goal",
+        "should_escape": false,
+        "url": "https://hermes-agent.local/slack/commands",
+        "usage_hint": "[text | remove N | clear]"
+      },
+      {
+        "command": "/whoami",
+        "description": "Show your slash command access (admin / user)",
+        "should_escape": false,
+        "url": "https://hermes-agent.local/slack/commands"
+      },
+      {
+        "command": "/profile",
+        "description": "Show active profile name and home directory",
+        "should_escape": false,
+        "url": "https://hermes-agent.local/slack/commands"
+      },
+      {
+        "command": "/sethome",
+        "description": "Set this chat as the home channel",
+        "should_escape": false,
+        "url": "https://hermes-agent.local/slack/commands"
+      },
+      {
+        "command": "/resume",
+        "description": "Resume a previously-named session",
+        "should_escape": false,
+        "url": "https://hermes-agent.local/slack/commands",
+        "usage_hint": "[name]"
+      },
+      {
+        "command": "/sessions",
+        "description": "Browse and resume previous sessions",
+        "should_escape": false,
+        "url": "https://hermes-agent.local/slack/commands"
+      },
+      {
+        "command": "/model",
+        "description": "Switch model (persists by default)",
+        "should_escape": false,
+        "url": "https://hermes-agent.local/slack/commands",
+        "usage_hint": "[model] [--provider name] [--global|--session] [--refresh]"
+      },
+      {
+        "command": "/codex-runtime",
+        "description": "Toggle codex app-server runtime for OpenAI/Codex models",
+        "should_escape": false,
+        "url": "https://hermes-agent.local/slack/commands",
+        "usage_hint": "[auto|codex_app_server]"
+      },
+      {
+        "command": "/personality",
+        "description": "Set a predefined personality",
+        "should_escape": false,
+        "url": "https://hermes-agent.local/slack/commands",
+        "usage_hint": "[name]"
+      },
+      {
+        "command": "/footer",
+        "description": "Toggle gateway runtime-metadata footer on final replies",
+        "should_escape": false,
+        "url": "https://hermes-agent.local/slack/commands",
+        "usage_hint": "[on|off|status]"
+      },
+      {
+        "command": "/yolo",
+        "description": "Toggle YOLO mode (skip all dangerous command approvals)",
+        "should_escape": false,
+        "url": "https://hermes-agent.local/slack/commands"
+      },
+      {
+        "command": "/reasoning",
+        "description": "Manage reasoning effort and display",
+        "should_escape": false,
+        "url": "https://hermes-agent.local/slack/commands",
+        "usage_hint": "[level|show|hide|full|clamp]"
+      },
+      {
+        "command": "/fast",
+        "description": "Toggle fast mode — OpenAI Priority Processing / Anthropic Fast Mode (Normal/Fast)",
+        "should_escape": false,
+        "url": "https://hermes-agent.local/slack/commands",
+        "usage_hint": "[normal|fast|status]"
+      },
+      {
+        "command": "/voice",
+        "description": "Toggle voice mode",
+        "should_escape": false,
+        "url": "https://hermes-agent.local/slack/commands",
+        "usage_hint": "[on|off|tts|status]"
+      },
+      {
+        "command": "/memory",
+        "description": "Review pending memory writes / toggle the approval gate",
+        "should_escape": false,
+        "url": "https://hermes-agent.local/slack/commands",
+        "usage_hint": "[pending|approve|reject|approval] [id|on|off]"
+      },
+      {
+        "command": "/bundles",
+        "description": "List skill bundles (aliases /<name> for multiple skills)",
+        "should_escape": false,
+        "url": "https://hermes-agent.local/slack/commands"
+      },
+      {
+        "command": "/learn",
+        "description": "Learn a reusable skill from anything you describe (dirs, URLs, this chat, notes)",
+        "should_escape": false,
+        "url": "https://hermes-agent.local/slack/commands",
+        "usage_hint": "<what to learn from>"
+      },
+      {
+        "command": "/suggestions",
+        "description": "Review suggested automations (accept/dismiss)",
+        "should_escape": false,
+        "url": "https://hermes-agent.local/slack/commands",
+        "usage_hint": "[accept|dismiss N | catalog]"
+      },
+      {
+        "command": "/blueprint",
+        "description": "Set up an automation from a blueprint template",
+        "should_escape": false,
+        "url": "https://hermes-agent.local/slack/commands",
+        "usage_hint": "[name] [slot=value ...]"
+      },
+      {
+        "command": "/curator",
+        "description": "Background skill maintenance (status, run, pin, archive, list-archived)",
+        "should_escape": false,
+        "url": "https://hermes-agent.local/slack/commands",
+        "usage_hint": "[subcommand]"
+      },
+      {
+        "command": "/kanban",
+        "description": "Multi-profile collaboration board (tasks, links, comments)",
+        "should_escape": false,
+        "url": "https://hermes-agent.local/slack/commands",
+        "usage_hint": "[subcommand]"
+      },
+      {
+        "command": "/reload-mcp",
+        "description": "Reload MCP servers from config",
+        "should_escape": false,
+        "url": "https://hermes-agent.local/slack/commands"
+      },
+      {
+        "command": "/reload-skills",
+        "description": "Re-scan ~/.hermes/skills/ for newly installed or removed skills",
+        "should_escape": false,
+        "url": "https://hermes-agent.local/slack/commands"
+      },
+      {
+        "command": "/commands",
+        "description": "Browse all commands and skills (paginated)",
+        "should_escape": false,
+        "url": "https://hermes-agent.local/slack/commands",
+        "usage_hint": "[page]"
+      },
+      {
+        "command": "/help",
+        "description": "Show available commands",
+        "should_escape": false,
+        "url": "https://hermes-agent.local/slack/commands"
+      },
+      {
+        "command": "/restart",
+        "description": "Gracefully restart the gateway after draining active runs",
+        "should_escape": false,
+        "url": "https://hermes-agent.local/slack/commands"
+      },
+      {
+        "command": "/usage",
+        "description": "Show token usage and rate limits; `reset` redeems a banked Codex limit reset",
+        "should_escape": false,
+        "url": "https://hermes-agent.local/slack/commands",
+        "usage_hint": "[reset [--force]]"
+      },
+      {
+        "command": "/insights",
+        "description": "Show usage insights and analytics",
+        "should_escape": false,
+        "url": "https://hermes-agent.local/slack/commands",
+        "usage_hint": "[days]"
+      },
+      {
+        "command": "/platform",
+        "description": "Pause, resume, or list a failing gateway platform",
+        "should_escape": false,
+        "url": "https://hermes-agent.local/slack/commands",
+        "usage_hint": "<pause|resume|list> [name]"
+      },
+      {
+        "command": "/update",
+        "description": "Update Hermes Agent to the latest version",
+        "should_escape": false,
+        "url": "https://hermes-agent.local/slack/commands"
+      },
+      {
+        "command": "/version",
+        "description": "Show Hermes Agent version",
+        "should_escape": false,
+        "url": "https://hermes-agent.local/slack/commands"
+      }
+    ],
+    "agent_view": {
+      "agent_description": "Chat with Kaya in Slack Messages."
+    }
+  },
+  "oauth_config": {
+    "scopes": {
+      "bot": [
+        "app_mentions:read",
+        "assistant:write",
+        "channels:history",
+        "channels:read",
+        "chat:write",
+        "commands",
+        "files:read",
+        "files:write",
+        "groups:history",
+        "groups:read",
+        "im:history",
+        "im:read",
+        "im:write",
+        "mpim:history",
+        "mpim:read",
+        "users:read"
+      ]
+    }
+  },
+  "settings": {
+    "event_subscriptions": {
+      "bot_events": [
+        "app_context_changed",
+        "app_home_opened",
+        "app_mention",
+        "message.channels",
+        "message.groups",
+        "message.im",
+        "message.mpim"
+      ]
+    },
+    "interactivity": {
+      "is_enabled": true
+    },
+    "org_deploy_enabled": false,
+    "socket_mode_enabled": true,
+    "token_rotation_enabled": false
+  }
+}</textarea>
+    <button id="copyBtn" onclick="copyManifest()" class="w-full display font-black text-sm uppercase tracking-widest border-t-2 border-ink px-4 py-4 bg-ink text-accent hover:bg-ink/90 transition-all">
+      ⧉ Copy the setup text
+    </button>
+  </div>
+  <p class="text-xs text-ink/50 mt-2">If the button doesn't work: tap inside the box, select all (Ctrl/Cmd&nbsp;+&nbsp;A), then copy (Ctrl/Cmd&nbsp;+&nbsp;C).</p>
+
+  <!-- Steps -->
+  <h2 class="text-2xl mt-12 mb-5">Set it up in Slack</h2>
+  <ol class="space-y-4">
+    <li class="flex gap-4">
+      <div class="w-8 h-8 flex-shrink-0 bg-ink text-accent display font-black flex items-center justify-center circle border-2 border-ink text-sm">1</div>
+      <div class="pt-1">
+        <div class="text-sm font-semibold text-ink">Copy the setup text above.</div>
+        <div class="text-sm text-ink/65 mt-0.5">Use the “Copy the setup text” button.</div>
+      </div>
+    </li>
+    <li class="flex gap-4">
+      <div class="w-8 h-8 flex-shrink-0 bg-ink text-accent display font-black flex items-center justify-center circle border-2 border-ink text-sm">2</div>
+      <div class="pt-1">
+        <div class="text-sm font-semibold text-ink">Go to <a href="https://api.slack.com/apps" target="_blank" rel="noopener noreferrer" class="underline hover:text-accent">api.slack.com/apps</a> and sign in.</div>
+        <div class="text-sm text-ink/65 mt-0.5">Sign in with the Slack account for your workspace.</div>
+      </div>
+    </li>
+    <li class="flex gap-4">
+      <div class="w-8 h-8 flex-shrink-0 bg-ink text-accent display font-black flex items-center justify-center circle border-2 border-ink text-sm">3</div>
+      <div class="pt-1">
+        <div class="text-sm font-semibold text-ink">Click “Create New App.”</div>
+      </div>
+    </li>
+    <li class="flex gap-4">
+      <div class="w-8 h-8 flex-shrink-0 bg-ink text-accent display font-black flex items-center justify-center circle border-2 border-ink text-sm">4</div>
+      <div class="pt-1">
+        <div class="text-sm font-semibold text-ink">Choose “From a manifest.”</div>
+        <div class="text-sm text-ink/65 mt-0.5">Then pick your workspace and continue.</div>
+      </div>
+    </li>
+    <li class="flex gap-4">
+      <div class="w-8 h-8 flex-shrink-0 bg-ink text-accent display font-black flex items-center justify-center circle border-2 border-ink text-sm">5</div>
+      <div class="pt-1">
+        <div class="text-sm font-semibold text-ink">Paste the setup text and confirm.</div>
+        <div class="text-sm text-ink/65 mt-0.5">Delete any sample text that's already in the box first, then paste. If it offers a preview, that's normal — continue.</div>
+      </div>
+    </li>
+    <li class="flex gap-4">
+      <div class="w-8 h-8 flex-shrink-0 bg-ink text-accent display font-black flex items-center justify-center circle border-2 border-ink text-sm">6</div>
+      <div class="pt-1">
+        <div class="text-sm font-semibold text-ink">Click “Create,” then install it to your workspace.</div>
+        <div class="text-sm text-ink/65 mt-0.5">If it asks you to review permissions, click Allow.</div>
+      </div>
+    </li>
+    <li class="flex gap-4">
+      <div class="w-8 h-8 flex-shrink-0 bg-ink text-accent display font-black flex items-center justify-center circle border-2 border-ink text-sm">7</div>
+      <div class="pt-1">
+        <div class="text-sm font-semibold text-ink">Grab your two keys.</div>
+        <div class="text-sm text-ink/65 mt-0.5 leading-relaxed">
+          You'll copy two keys and send them to us in the next step:
+          <ul class="mt-2 space-y-1">
+            <li>• <span class="font-semibold text-ink">Bot Token</span> — starts with <span class="mono bg-accentSoft px-1.5 py-0.5 border border-ink/20">xoxb-</span>, under “OAuth &amp; Permissions.”</li>
+            <li>• <span class="font-semibold text-ink">App-Level Token</span> — starts with <span class="mono bg-accentSoft px-1.5 py-0.5 border border-ink/20">xapp-</span>, under “Basic Information → App-Level Tokens.”</li>
+          </ul>
+          <span class="text-ink/55">We'll point you to exactly where these live on the call.</span>
+        </div>
+      </div>
+    </li>
+  </ol>
+
+  <!-- Send keys -->
+  <div class="border-2 border-ink bg-darkCard text-paper shadow-brut p-6 mt-12">
+    <div class="mono text-[11px] text-accent uppercase tracking-widest font-semibold mb-2">Last step — send us your two keys</div>
+    <h2 class="text-2xl text-paper mb-3">These two ARE secret.</h2>
+    <p class="text-paper/75 text-sm leading-relaxed mb-5">
+      Unlike the setup text above, your <span class="mono">xoxb-</span> and <span class="mono">xapp-</span> keys are private. Don't paste them into email or chat. Use our encrypted tool — it scrambles them in your browser so only the Strategy Ninjas team can read them.
+    </p>
+    <a href="https://strategynexus.github.io/agent-discovery/quick-encrypt/" target="_blank" rel="noopener noreferrer"
+      class="inline-block display font-black text-sm uppercase tracking-widest bg-accent text-ink border-2 border-accent px-8 py-4 hover:bg-paper hover:border-paper transition-all">
+      🔐 Send my keys securely →
+    </a>
+    <p class="text-paper/60 text-xs mt-4 leading-relaxed">
+      On that page, add two entries — label one <span class="mono text-paper/80">Slack Bot Token</span> (paste the <span class="mono">xoxb-</span> key) and one <span class="mono text-paper/80">Slack App Token</span> (paste the <span class="mono">xapp-</span> key) — then submit.
+    </p>
+  </div>
+
+  <p class="text-xs text-ink/50 mt-8 text-center">Questions during setup? We're right here on the call. Or reach us at <a href="mailto:info@thestrategyninjas.com" class="underline hover:text-accent">info@thestrategyninjas.com</a>.</p>
+
+</div>
+
+<script>
+function flash(text) {
+  var b = document.getElementById('copyBtn');
+  if (b.dataset.busy) return;
+  b.dataset.busy = "1";
+  var prev = b.innerHTML, prevClass = b.className;
+  b.innerHTML = text;
+  b.className = prevClass.replace('bg-ink text-accent', 'bg-accent text-ink');
+  setTimeout(function () { b.innerHTML = prev; b.className = prevClass; delete b.dataset.busy; }, 1600);
+}
+async function copyManifest() {
+  var ta = document.getElementById('manifest');
+  ta.focus();
+  ta.select();
+  try { ta.setSelectionRange(0, ta.value.length); } catch (e) {}
+  // Try the modern API first.
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    try { await navigator.clipboard.writeText(ta.value); flash('✓ Copied — paste it into Slack'); return; } catch (e) {}
+  }
+  // Fallback: execCommand.
+  try { if (document.execCommand('copy')) { flash('✓ Copied — paste it into Slack'); return; } } catch (e) {}
+  // Last resort: leave it selected and tell them.
+  flash('Now press Ctrl/Cmd + C');
+}
+</script>
+</body>
+</html>
