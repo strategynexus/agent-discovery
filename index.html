@@ -324,7 +324,7 @@ const initialData = {
   websites: "",
   timezone: "",
   timezoneOther: "",
-  telegramUserIds: [""],   // one or more; shared agents whitelist several people
+  telegramUserIds: [{ name: "", role: "", id: "" }],   // one or more; shared agents whitelist several people (name + role are labels)
   agentName: "",
   botToken: "",
   apiKey: "",
@@ -357,10 +357,11 @@ function App() {
   const update = (patch) => setData(d => ({ ...d, ...patch }));
 
   // Telegram ID list helpers
-  const setTgId = (i, val) => setData(d => {
-    const next = [...d.telegramUserIds]; next[i] = val; return { ...d, telegramUserIds: next };
+  const setTgField = (i, field, val) => setData(d => {
+    const next = d.telegramUserIds.map((p, x) => x === i ? { ...p, [field]: val } : p);
+    return { ...d, telegramUserIds: next };
   });
-  const addTgId = () => setData(d => ({ ...d, telegramUserIds: [...d.telegramUserIds, ""] }));
+  const addTgId = () => setData(d => ({ ...d, telegramUserIds: [...d.telegramUserIds, { name: "", role: "", id: "" }] }));
   const removeTgId = (i) => setData(d => ({ ...d, telegramUserIds: d.telegramUserIds.filter((_, x) => x !== i) }));
 
   // Optional extra secrets (label + value), encrypted individually like the rest.
@@ -374,7 +375,7 @@ function App() {
   const valid = useMemo(() => {
     const typeOk = data.agentType && (data.agentType !== "Other" || data.agentTypeOther.trim().length > 1);
     const tzOk = data.timezone && (data.timezone !== "Other" || data.timezoneOther.trim().length > 1);
-    const tgOk = data.telegramUserIds.some(id => id.trim().length >= 3);
+    const tgOk = data.telegramUserIds.some(p => p.id.trim().length >= 3);
     // Extra secrets are optional, but any that were filled in must fit in one RSA block.
     const extrasOk = data.extraSecrets.every(r => !r.secret.trim() || byteLen(r.secret) <= MAX_SECRET_BYTES);
     return (
@@ -400,8 +401,12 @@ function App() {
     setPhase("submitting");
     setErrorMsg("");
     try {
-      // Collect the Telegram IDs (drop blanks) into one comma-joined string, then encrypt.
-      const tgList = data.telegramUserIds.map(s => s.trim()).filter(Boolean).join(", ");
+      // Collect the Telegram people who have an ID. The IDs are encrypted (comma-joined,
+      // same format Tess already reads); the name + role travel as plaintext labels in the
+      // SAME order, so each decrypted ID lines up with its person.
+      const tgPeople = data.telegramUserIds.filter(p => p.id.trim());
+      const tgList = tgPeople.map(p => p.id.trim()).join(", ");
+      const tgLabels = tgPeople.map(p => ({ name: p.name.trim(), role: p.role.trim() }));
 
       // Encrypt the sensitive fields in the browser before anything leaves the page.
       const [encTgIds, encBot, encKey] = await Promise.all([
@@ -441,6 +446,8 @@ function App() {
         pfp_choice: data.pfpChoice ? (data.pfpChoice.none ? "No picture yet (client will choose their own)" : ("#" + data.pfpChoice.n + " — " + data.pfpChoice.name)) : "",
         pfp_id: (data.pfpChoice && !data.pfpChoice.none) ? data.pfpChoice.id : "",
         pfp_name: (data.pfpChoice && !data.pfpChoice.none) ? data.pfpChoice.name : "",
+        // Who the Telegram IDs belong to (plaintext labels, aligned with the decrypted IDs).
+        telegram_people: tgLabels,
         // encrypted (base64 RSA-OAEP ciphertext)
         enc_telegramUserIds: encTgIds,
         enc_botToken: encBot,
@@ -540,24 +547,25 @@ function App() {
         </Field>
 
         {/* Telegram User ID(s) */}
-        <Field label="Your Telegram User ID" required howto="How to find this" onHowto={() => setModal("tgUserId")} hint="A ~10-digit number that tells your agent who you are. Add more than one if a few people will share this agent.">
-          <div className="space-y-2">
-            {data.telegramUserIds.map((id, i) => (
-              <div key={i} className="flex items-center gap-2">
-                <input
-                  type="text"
-                  value={id}
-                  onChange={e => setTgId(i, e.target.value)}
-                  placeholder={i === 0 ? "123456789" : "Another person's Telegram ID"}
-                  className={inputClass}
-                />
-                {data.telegramUserIds.length > 1 && (
-                  <button type="button" onClick={() => removeTgId(i)} className="w-10 h-10 flex-shrink-0 border-2 border-ink/25 hover:border-ink text-ink/60 hover:text-ink font-black" aria-label="Remove">✕</button>
-                )}
+        <Field label="Your Telegram User ID" required howto="How to find this" onHowto={() => setModal("tgUserId")} hint="A ~10-digit number that tells your agent who you are. Add more than one if a few people will share this agent — the name and role help your agent know who it's talking to.">
+          <div className="space-y-4">
+            {data.telegramUserIds.map((p, i) => (
+              <div key={i} className="border-l-2 border-accent pl-4">
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="mono text-[11px] uppercase tracking-widest font-semibold text-ink/60">{i === 0 ? "You" : "Person " + (i + 1)}</span>
+                  {data.telegramUserIds.length > 1 && (
+                    <button type="button" onClick={() => removeTgId(i)} className="mono text-[11px] text-ink/40 hover:text-[#C0392B] transition-colors">✕ remove</button>
+                  )}
+                </div>
+                <div className="grid grid-cols-2 gap-2 mb-2">
+                  <input type="text" value={p.name} onChange={e => setTgField(i, "name", e.target.value)} placeholder={i === 0 ? "Your name" : "Name (e.g. Jane)"} className={inputClass} />
+                  <input type="text" value={p.role} onChange={e => setTgField(i, "role", e.target.value)} placeholder="Role (e.g. Manager)" className={inputClass} />
+                </div>
+                <input type="text" value={p.id} onChange={e => setTgField(i, "id", e.target.value)} placeholder={i === 0 ? "Telegram ID — 123456789" : "Their Telegram ID"} className={inputClass} />
               </div>
             ))}
           </div>
-          <button type="button" onClick={addTgId} className="mono text-[11px] font-semibold uppercase tracking-widest text-accent hover:text-ink mt-2">
+          <button type="button" onClick={addTgId} className="mono text-[11px] font-semibold uppercase tracking-widest text-accent hover:text-ink mt-3">
             + Add another person
           </button>
         </Field>
