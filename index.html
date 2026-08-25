@@ -249,6 +249,10 @@ const HOWTO = {
 
 const inputClass = "w-full px-4 py-3 bg-card border-2 border-ink/25 focus:border-ink focus:outline-none focus:shadow-brut-sm transition-all text-sm placeholder:text-ink/30";
 
+// Rough plan brackets for an existing OpenAI / Grok subscription. Price-anchored so a
+// client recognizes their bracket at a glance; Alex confirms the exact plan on the call.
+const SUB_TIERS = ["Free", "Around $20 – $30 / month", "Around $100+ / month", "Not sure — we'll confirm"];
+
 function Label({ children, required }) {
   return (
     <label className="block mono text-xs font-semibold uppercase tracking-widest text-ink/80 mb-2">
@@ -328,6 +332,10 @@ const initialData = {
   agentName: "",
   botToken: "",
   apiKey: "",
+  subOpenAI: false,
+  subOpenAITier: "",
+  subGrok: false,
+  subGrokTier: "",
   commStyle: "",
   businessContext: "",
   extraSecrets: [],  // optional [{ label, secret }] — anything else that needs encrypting
@@ -424,6 +432,12 @@ function App() {
 
       const timezone = data.timezone === "Other" ? data.timezoneOther.trim() : data.timezone;
 
+      // Existing AI subscriptions the client already pays for (plaintext — for our records).
+      // We don't sign in here; Alex confirms the exact plan / OAuth with them on the call.
+      const existingSubs = [];
+      if (data.subOpenAI) existingSubs.push({ provider: "OpenAI (ChatGPT)", tier: data.subOpenAITier || "(not specified)" });
+      if (data.subGrok) existingSubs.push({ provider: "Grok (xAI)", tier: data.subGrokTier || "(not specified)" });
+
       const today = new Date().toISOString().slice(0, 10).replace(/-/g, "");
       const filename = `SNForge-${slug(data.companyName) || "client"}_${slug(data.agentName) || "agent"}_setup_${today}.txt`;
 
@@ -440,6 +454,8 @@ function App() {
         agentName: data.agentName.trim(),
         commStyle: data.commStyle.trim(),
         businessContext: data.businessContext.trim(),
+        // Existing AI subscriptions the client already pays for (plaintext, for our records).
+        existing_subscriptions: existingSubs,
         consent: data.consent === true,
         // Chosen agent face (not sensitive). pfp_id lets the backend attach + copy the
         // actual image so the record survives even if the Drive library changes later.
@@ -606,6 +622,38 @@ function App() {
             <button type="button" onClick={() => setShowKey(s => !s)} className="absolute right-3 top-1/2 -translate-y-1/2 mono text-[11px] uppercase tracking-widest text-ink/50 hover:text-ink">
               {showKey ? "Hide" : "Show"}
             </button>
+          </div>
+        </Field>
+
+        {/* Existing AI subscriptions — OpenAI / Grok (plaintext, for our records) */}
+        <Field label="Existing AI subscriptions" hint="Optional. If you already pay for ChatGPT (OpenAI) or Grok, your agent can run on that subscription with the new setup — no separate usage billing. Check any you have and roughly which plan. We won't sign in to anything now; Alex will confirm the details with you.">
+          <div className="space-y-3">
+            {/* OpenAI */}
+            <div className="border-l-2 border-ink/15 pl-4">
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input type="checkbox" checked={data.subOpenAI} onChange={e => update({ subOpenAI: e.target.checked, subOpenAITier: e.target.checked ? data.subOpenAITier : "" })} className="w-5 h-5 flex-shrink-0" />
+                <span className="text-sm">OpenAI (ChatGPT)</span>
+              </label>
+              {data.subOpenAI && (
+                <select value={data.subOpenAITier} onChange={e => update({ subOpenAITier: e.target.value })} className={inputClass + " mt-2"}>
+                  <option value="" disabled>Which plan do you have?</option>
+                  {SUB_TIERS.map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
+              )}
+            </div>
+            {/* Grok */}
+            <div className="border-l-2 border-ink/15 pl-4">
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input type="checkbox" checked={data.subGrok} onChange={e => update({ subGrok: e.target.checked, subGrokTier: e.target.checked ? data.subGrokTier : "" })} className="w-5 h-5 flex-shrink-0" />
+                <span className="text-sm">Grok (xAI)</span>
+              </label>
+              {data.subGrok && (
+                <select value={data.subGrokTier} onChange={e => update({ subGrokTier: e.target.value })} className={inputClass + " mt-2"}>
+                  <option value="" disabled>Which plan do you have?</option>
+                  {SUB_TIERS.map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
+              )}
+            </div>
           </div>
         </Field>
 
