@@ -204,6 +204,84 @@ async function encryptField(plaintext) {
 }
 
 // ============================================================================
+// FORGE DRAFT (plaintext, no secrets — Agent Forge CLI intake)
+// ============================================================================
+
+const DEFAULT_AGENT_VOICE = "professional and clear";
+
+function slug(s) {
+  return (s || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+}
+
+function parseDomains(raw) {
+  return String(raw || "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+// Secret-free snapshot the Agent Forge CLI can consume. Telegram numeric IDs,
+// bot tokens, API keys, and extra secrets stay out of this object — those
+// travel only in the enc_* fields of the Drive payload.
+function buildForgeDraft({
+  agentName,
+  agentType,
+  clientName,
+  companyName,
+  timezone,
+  websites,
+  commStyle,
+  businessContext,
+  telegramPeople,
+  pfpChoice,
+  existingSubscriptions,
+  consent,
+  capturedAt,
+}) {
+  const voice = (commStyle || "").trim() || DEFAULT_AGENT_VOICE;
+  const pfp = (!pfpChoice || pfpChoice.none)
+    ? { none: true }
+    : { n: pfpChoice.n, id: pfpChoice.id, name: pfpChoice.name };
+  return {
+    agent: {
+      name: agentName,
+      role: agentType,
+      voice,
+    },
+    owner: {
+      name: clientName,
+      company: companyName,
+      timezone,
+      domains: parseDomains(websites),
+      communication_style: (commStyle || "").trim(),
+      notes: (businessContext || "").trim(),
+    },
+    agent_type: agentType,
+    telegram_people: (telegramPeople || []).map((p) => ({ name: p.name || "", role: p.role || "" })),
+    pfp,
+    existing_subscriptions: existingSubscriptions || [],
+    consent: consent === true,
+    capturedAt,
+    telegram: {
+      enabled: true,
+      credentials: "pending_cert",
+    },
+  };
+}
+
+function downloadJsonFile(filename, obj) {
+  const blob = new Blob([JSON.stringify(obj, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+// ============================================================================
 // HOW-TO CONTENT (modal bodies)
 // ============================================================================
 
@@ -402,8 +480,6 @@ function App() {
     );
   }, [data]);
 
-  const slug = (s) => (s || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
-
   const submit = async () => {
     if (!valid || phase === "submitting") return;
     setPhase("submitting");
@@ -439,14 +515,36 @@ function App() {
       if (data.subGrok) existingSubs.push({ provider: "Grok (xAI)", tier: data.subGrokTier || "(not specified)" });
 
       const today = new Date().toISOString().slice(0, 10).replace(/-/g, "");
-      const filename = `SNForge-${slug(data.companyName) || "client"}_${slug(data.agentName) || "agent"}_setup_${today}.txt`;
+      const fileStem = `SNForge-${slug(data.companyName) || "client"}_${slug(data.agentName) || "agent"}_setup_${today}`;
+      const filename = `${fileStem}.txt`;
+      const capturedAt = new Date().toString();
+      const agentType = data.agentType === "Other" ? data.agentTypeOther.trim() : data.agentType;
+
+      // Plaintext, secret-free intake the Agent Forge CLI can consume. Secrets
+      // stay only in enc_* / extra_secrets below; this object is also downloaded
+      // locally as JSON so the team can feed Forge without opening Drive.
+      const forge_draft = buildForgeDraft({
+        agentName: data.agentName.trim(),
+        agentType,
+        clientName: data.clientName.trim(),
+        companyName: data.companyName.trim(),
+        timezone,
+        websites: data.websites.trim(),
+        commStyle: data.commStyle.trim(),
+        businessContext: data.businessContext.trim(),
+        telegramPeople: tgLabels,
+        pfpChoice: data.pfpChoice,
+        existingSubscriptions: existingSubs,
+        consent: data.consent,
+        capturedAt,
+      });
 
       const payload = {
         kind: "agent_setup_v2",
         schema_version: SCHEMA_VERSION,
         encryption_key_id: KEY_ID,
         filename,
-        agentType: data.agentType === "Other" ? data.agentTypeOther.trim() : data.agentType,
+        agentType,
         clientName: data.clientName.trim(),
         companyName: data.companyName.trim(),
         websites: data.websites.trim(),
@@ -469,7 +567,8 @@ function App() {
         enc_botToken: encBot,
         enc_apiKey: encKey,
         extra_secrets: encExtras,   // [{ label, enc_value }] — same ENC format as the rest
-        capturedAt: new Date().toString(),
+        capturedAt,
+        forge_draft,
       };
 
       // text/plain avoids a CORS preflight; Apps Script parses the body as JSON.
@@ -478,6 +577,8 @@ function App() {
         headers: { "Content-Type": "text/plain;charset=utf-8" },
         body: JSON.stringify(payload),
       });
+
+      downloadJsonFile(`${fileStem}-forge-draft.json`, forge_draft);
 
       if (typeof confetti === "function") {
         confetti({ particleCount: 70, spread: 75, startVelocity: 45, gravity: 0.9, ticks: 200, origin: { x: 0.5, y: 0.5 }, colors: ["#3EB8C8", "#181818", "#BBB469", "#F7F3EA"] });
@@ -911,7 +1012,7 @@ function ThankYou({ data }) {
     if (!hasFace) return;
     const a = document.createElement("a");
     a.href = pfpDownload(choice.id);
-    a.download = (agent.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "agent") + "-face.png";
+    a.download = (slug(agent) || "agent") + "-face.png";
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -923,17 +1024,17 @@ function ThankYou({ data }) {
       <main className="flex-1 flex flex-col items-center px-6 py-16">
         <div className="max-w-lg text-center fade-in">
           <div className="w-20 h-20 bg-ink text-accent border-2 border-ink shadow-brut mx-auto mb-8 flex items-center justify-center display font-black text-4xl scale-in circle">✓</div>
-          <div className="mono text-xs text-accent uppercase tracking-widest font-semibold mb-3">Setup received</div>
+          <div className="mono text-xs text-accent uppercase tracking-widest font-semibold mb-3">Intake received</div>
           <h1 className="text-3xl md:text-4xl mb-4">You're all set{first}.</h1>
           <p className="text-ink/75 text-base md:text-lg leading-relaxed mb-8">
-            We've got everything we need to build <span className="serif italic font-semibold">{agent}</span>. Our team will take it from here and reach out with next steps. Welcome aboard.
+            Your intake for <span className="serif italic font-semibold">{agent}</span> is with your AI Employee. Strategy Ninjas will certify it, then deliver it on Telegram and SN3. We'll be in touch when it's ready — it's not live yet.
           </p>
           <div className="bg-card border-2 border-ink shadow-brut p-6 text-left">
             <div className="mono text-xs text-ink/60 uppercase tracking-widest font-semibold mb-3">What happens next</div>
             <ol className="text-sm text-ink/80 space-y-2 list-decimal list-inside">
-              <li>We schedule your launch call.</li>
-              <li>We build your agent.</li>
-              <li>We launch it together on that call.</li>
+              <li>Your intake is with your AI Employee.</li>
+              <li>Strategy Ninjas certifies it.</li>
+              <li>We deliver it on Telegram and SN3.</li>
             </ol>
           </div>
 
@@ -963,14 +1064,14 @@ function ThankYou({ data }) {
               </button>
             </div>
             <div className="mt-5 bg-accentSoft border-2 border-ink p-4 text-left">
-              <div className="mono text-[11px] text-ink/70 uppercase tracking-widest font-semibold mb-3">Set it as your agent's photo — two ways</div>
+              <div className="mono text-[11px] text-ink/70 uppercase tracking-widest font-semibold mb-3">Set it as your AI Employee's photo — two ways</div>
               <div className="mb-3">
-                <div className="text-sm font-semibold text-ink mb-1">Right on your bot (fastest)</div>
-                <p className="text-sm text-ink/80">Open your bot's chat, tap its name at the top to open its profile, tap <span className="font-semibold">Edit</span>, then tap the photo icon and upload the image.</p>
+                <div className="text-sm font-semibold text-ink mb-1">Right in Telegram (fastest)</div>
+                <p className="text-sm text-ink/80">Open the chat, tap the name at the top to open the profile, tap <span className="font-semibold">Edit</span>, then tap the photo icon and upload the image.</p>
               </div>
               <div className="border-t border-ink/15 pt-3">
                 <div className="text-sm font-semibold text-ink mb-1">Or through @BotFather</div>
-                <p className="text-sm text-ink/80">Message <span className="mono font-semibold">@BotFather</span>, send <span className="mono font-semibold">/setuserpic</span>, choose your bot, and upload the image. ✨</p>
+                <p className="text-sm text-ink/80">Message <span className="mono font-semibold">@BotFather</span>, send <span className="mono font-semibold">/setuserpic</span>, choose your AI Employee, and upload the image. ✨</p>
               </div>
             </div>
             <p className="text-center text-xs text-ink/40 mt-5">Our team has this on file too — we'll set it up with you on the launch call.</p>
