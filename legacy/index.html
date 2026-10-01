@@ -1,0 +1,993 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Strategy Ninjas — Agent Setup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700;900&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Source+Serif+4:ital,wght@0,400;0,600;0,700;0,900;1,400&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+<script>
+  tailwind.config = {
+    corePlugins: { preflight: true },
+    theme: {
+      extend: {
+        fontFamily: {
+          sans: ['Inter', 'system-ui', 'sans-serif'],
+          display: ['"Space Grotesk"', 'system-ui', 'sans-serif'],
+          serif: ['"Source Serif 4"', 'Georgia', 'serif'],
+          mono: ['JetBrains Mono', 'monospace'],
+        },
+        colors: {
+          ink: '#181818',
+          paper: '#F7F3EA',
+          card: '#FFFFFF',
+          darkCard: '#101010',
+          accent: '#3EB8C8',
+          accentSoft: '#E8F6F8',
+          gold: '#BBB469',
+        },
+        boxShadow: {
+          brut: '6px 6px 0 0 #181818',
+          'brut-sm': '4px 4px 0 0 #181818',
+          'brut-lg': '14px 14px 0 0 #181818',
+          'brut-hover': '8px 8px 0 0 #181818',
+        },
+        borderRadius: { DEFAULT: '0', none: '0', sm: '0', md: '0', lg: '0', xl: '0', '2xl': '0', full: '0' },
+      },
+    },
+  };
+</script>
+<style>
+  body { font-family: 'Inter', sans-serif; background: #F7F3EA; color: #181818; -webkit-font-smoothing: antialiased; }
+  .display { font-family: 'Space Grotesk', system-ui, sans-serif; }
+  .mono { font-family: 'JetBrains Mono', monospace; }
+  .serif { font-family: 'Source Serif 4', Georgia, serif; }
+  h1, h2, h3 { font-family: 'Source Serif 4', 'Source Serif Pro', Georgia, serif; font-weight: 900; text-transform: uppercase; letter-spacing: -0.01em; line-height: 0.95; }
+  h1 { letter-spacing: -0.02em; line-height: 0.94; }
+  button, input, textarea, select, .card, [class*="rounded"] { border-radius: 0 !important; }
+  .circle { border-radius: 9999px !important; }
+  input[type=checkbox] { accent-color: #3EB8C8; }
+  ::selection { background: #3EB8C8; color: #181818; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  .fade-in { animation: fadeIn 0.3s ease-out; }
+  @keyframes overlayIn { from { opacity: 0; } to { opacity: 1; } }
+  .overlay-in { animation: overlayIn 0.2s ease-out; }
+  @keyframes scaleIn { 0% { transform: scale(0.3); opacity: 0; } 60% { transform: scale(1.1); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
+  .scale-in { animation: scaleIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); }
+  @keyframes spin-slow { to { transform: rotate(360deg); } }
+  .spin-slow { animation: spin-slow 1.2s linear infinite; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useMemo, useEffect } = React;
+
+// ============================================================================
+// CONFIG
+// ============================================================================
+
+// Google Apps Script web-app endpoint that saves the intake to Drive + emails the team.
+const BACKEND_URL = "https://script.google.com/macros/s/AKfycbwlDjUnvf-2SSI-vVdIUaWNDHyC3z4OLWmbzFPWwLQx9PXTp59s5q1pgFX4eaRt8aZY/exec";
+
+// Artifact versioning. SCHEMA_VERSION tags the intake format; KEY_ID identifies which
+// keypair encrypted the secrets (so a future key rotation stays traceable — bump KEY_ID
+// whenever PUBLIC_KEY_SPKI_B64 below is replaced).
+const SCHEMA_VERSION = "agent_setup_v2";
+const KEY_ID = "sn-intake-2026-07";
+
+// RSA-2048 public key (SPKI, base64). Encrypts the sensitive fields in the browser
+// before anything is sent. Only Strategy Ninjas holds the matching private key.
+// Safe to be public — a public key can lock but never unlock.
+const PUBLIC_KEY_SPKI_B64 = "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAqdrQfCwJpaHbHe54lugac03rbMCT6Vtu+ZKWtyA9J9ynWxua5qPlv8uzVsmugnlgE+0Zt3NgqOELwUcfsxRoClnY6hvv11NubZrzdV94W6kpvJ9sp7jBF3YwFVOK29hbNZVZcgm3SuIS1Uhu85rnsbfXvGy+pMONCBlWVzo3xWidxTyeszDFxCnfhJ1e/Q+rE1Ti2xD8Oe5WtI/ruCAI03Bk8XBrlERtDN4e3UX1uzaQeMT5jo9y+l97zSOVIkVUuzi85qN6PGIBpAAyqjy+f4tfk6G8QgapuXyaJI+KE55KLu0RY3DZssx3hVQGTCZ1a7ewT6f90kGVi6WyT49+wQIDAQAB";
+
+const AGENT_TYPES = ["Chief of Staff", "Transaction Coordinator", "Other"];
+
+// RSA-2048 + OAEP(SHA-256) max plaintext = 256 - 2*32 - 2 = 190 bytes. Each extra
+// secret is encrypted on its own, so the cap is per field.
+const MAX_SECRET_BYTES = 190;
+const byteLen = (s) => new TextEncoder().encode(s || "").length;
+
+// Curated timezone list (common US zones + a few international) + Other for anything else.
+const TIMEZONES = [
+  "Eastern (ET)",
+  "Central (CT)",
+  "Mountain (MT)",
+  "Pacific (PT)",
+  "Alaska (AKT)",
+  "Hawaii (HT)",
+  "Arizona (no DST)",
+  "UK / London (GMT/BST)",
+  "Central Europe (CET)",
+  "India (IST)",
+  "Australia Eastern (AET)",
+  "Other",
+];
+
+// Agent profile-picture picker. The list streams live from the Drive folder via
+// the backend (see fetchPfpsLive) so add/remove in Drive shows up here with no
+// redeploy. This hard-coded list is the FALLBACK if the live fetch fails.
+const PFP_FOLDER_URL = "https://drive.google.com/drive/folders/1cFjXQI21bu1PAIi60LWj_sEsIJ_sNB7g";
+const AGENT_PFPS_FALLBACK = [
+  { n: 1,  id: "1A7pqjebRyfvRXrT_ICGGU8kgVLpHwzFK", name: "Agent-PFP-1.png" },
+  { n: 2,  id: "1TK7FIwWKDCMjSpx4nOvTYpYg4nrk2gDz", name: "Agent-PFP-2.png" },
+  { n: 3,  id: "1W8AN43YqdIEcbKhbX5B3HXsv8T-tdCFL", name: "Agent-PFP-3.png" },
+  { n: 4,  id: "1tL0hrZNJ405K3qe_7Q7djiHmbVVJZ3JR", name: "Agent-PFP-4.png" },
+  { n: 5,  id: "1H7okGoQha2oAlaKG_ti7ngkjUcK8sOOT", name: "Agent-PFP-5.png" },
+  { n: 6,  id: "1CjvM6P2Sm2vFyR_6GeuG2vvm-C--HyHj", name: "Agent-PFP-6.png" },
+  { n: 7,  id: "1PmoX-e-RG3hUAz3jSONX8O01DcPqhylo", name: "Agent-PFP-7.png" },
+  { n: 8,  id: "1N26TCDlGehr3EKOFN8i7ebu5eCVcPzES", name: "Agent-PFP-8.png" },
+  { n: 9,  id: "1OfTIZe3G4_n9JO_7sEFEjPBga6debWUb", name: "Agent-PFP-9.png" },
+  { n: 10, id: "1FtH-mTVl5WkazBMDC_ALo5Kq6QW_66bv", name: "Agent-PFP-10.png" },
+  { n: 11, id: "10FsuZI4oTJ6hmWawPaD5yepQHRe7qNgn", name: "Agent-PFP-11.png" },
+  { n: 12, id: "1PiLrpsLOzZ73fW9OUKfjKIkyZOlbR1Tw", name: "Agent-PFP-12.png" },
+  { n: 13, id: "1SWbTZhOQ3OacS9FQdG4Q4V5LnE8MBN55", name: "Agent-PFP-13.png" },
+  { n: 14, id: "1gtqzKMnbz-9a4Ca9t0FPGjRt9zLihA--", name: "Agent-PFP-14.png" },
+  { n: 15, id: "1E9ypCmKWS68aWGrC7Z3OFY7B04RcpE8D", name: "Agent-PFP-15.png" },
+  { n: 16, id: "17yIj6fauC8P3rT8fQdJKgX1vGE9Aceve", name: "Agent-PFP-16.png" },
+  { n: 17, id: "1bzF6K4FMVFCYdylzrURqHxVnnS8ezgmw", name: "Agent-PFP-17.png" },
+  { n: 18, id: "1VMAYHqRLWjihNNmffdERNxQGZKTm108r", name: "Agent-PFP-18.png" },
+  { n: 19, id: "1CNsPCawBD47icqMoMlTZYCqTlp-9i2Iq", name: "Agent-PFP-19.png" },
+  { n: 20, id: "1WdOKJLjxdO7YaswZKA5SIgSyVscWMoK_", name: "Agent-PFP-20.png" },
+];
+// Drive endpoints: thumbnail for display (embeds cleanly), uc?export=download for the file.
+const pfpThumb = (id) => `https://drive.google.com/thumbnail?id=${id}&sz=w500`;
+const pfpFull  = (id) => `https://lh3.googleusercontent.com/d/${id}=w500`;
+const pfpDownload = (id) => `https://drive.google.com/uc?export=download&id=${id}`;
+
+// Pulls the current image list from the Drive folder via the backend (JSONP, so it
+// works cross-origin from a static page). Calls cb(list) with [{n,id,name}], or
+// cb(null) on failure so the caller can fall back to the hard-coded list.
+function fetchPfpsLive(cb) {
+  var done = false;
+  var cbName = "__pfp_cb_" + Math.floor(Math.random() * 1e9);
+  var script = document.createElement("script");
+  function cleanup() { try { delete window[cbName]; } catch (e) { window[cbName] = undefined; } if (script.parentNode) script.parentNode.removeChild(script); }
+  window[cbName] = function (list) {
+    done = true;
+    if (Array.isArray(list) && list.length) {
+      cb(list.map(function (item, i) { return { n: i + 1, id: item.id, name: item.name }; }));
+    } else { cb(null); }
+    cleanup();
+  };
+  script.onerror = function () { if (!done) { cb(null); cleanup(); } };
+  script.src = BACKEND_URL + "?action=pfps&callback=" + cbName;
+  document.head.appendChild(script);
+  setTimeout(function () { if (!done) { cb(null); cleanup(); } }, 6000);
+}
+
+// ============================================================================
+// ENCRYPTION (Web Crypto, RSA-OAEP SHA-256)
+// ============================================================================
+
+function b64ToBytes(b64) {
+  const bin = atob(b64);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return bytes;
+}
+function bytesToB64(bytes) {
+  let bin = "";
+  const arr = new Uint8Array(bytes);
+  for (let i = 0; i < arr.length; i++) bin += String.fromCharCode(arr[i]);
+  return btoa(bin);
+}
+
+let _pubKeyPromise = null;
+function getPublicKey() {
+  if (!_pubKeyPromise) {
+    _pubKeyPromise = crypto.subtle.importKey(
+      "spki",
+      b64ToBytes(PUBLIC_KEY_SPKI_B64),
+      { name: "RSA-OAEP", hash: "SHA-256" },
+      false,
+      ["encrypt"]
+    );
+  }
+  return _pubKeyPromise;
+}
+
+// Encrypts a string with the SN public key. Returns base64 ciphertext, or "" for empty input.
+async function encryptField(plaintext) {
+  if (!plaintext) return "";
+  const key = await getPublicKey();
+  const data = new TextEncoder().encode(plaintext);
+  const ct = await crypto.subtle.encrypt({ name: "RSA-OAEP" }, key, data);
+  return bytesToB64(ct);
+}
+
+// ============================================================================
+// HOW-TO CONTENT (modal bodies)
+// ============================================================================
+
+// Each step is [title, detail, imagePath?]. If imagePath is set, it renders under the step.
+const HOWTO = {
+  tgUserId: {
+    title: "Find your Telegram User ID",
+    steps: [
+      ["Download Telegram if you don't have it yet.", "iPhone/iPad: App Store → search \"Telegram Messenger\". Android: Google Play → search \"Telegram\"."],
+      ["Create or log into your account.", "Use your mobile phone number."],
+      ["Search for @userinfobot.", "Type it into Telegram's search bar. Tap the one with the blue check that looks like this:", "../screenshots/userinfobot.png"],
+      ["Open it and tap Start.", ""],
+      ["The bot replies with your account details.", ""],
+      ["Copy the number shown as \"Id\" or \"User ID\".", "It's about 10 digits. Paste it into the Telegram User ID field."],
+    ],
+  },
+  botToken: {
+    title: "Create your Telegram bot",
+    steps: [
+      ["In Telegram, search for @BotFather.", "Tap the verified account with the blue check that looks like this, then tap Start:", "../screenshots/botfather.png"],
+      ["Send this command: /newbot", ""],
+      ["Enter a display name for the bot.", "This is the name people will see."],
+      ["Enter a username for the bot.", "Must end in \"bot\", be unique across Telegram, and use only letters, numbers, and underscores."],
+      ["BotFather creates the bot and shows an API token.", ""],
+      ["Copy the full API token.", "Paste it into the Telegram Bot Token field."],
+    ],
+  },
+  apiKey: {
+    title: "Get your OpenRouter API key",
+    steps: [
+      ["Go to openrouter.ai and sign in.", "Create an account with Google, GitHub, or email if you don't have one yet."],
+      ["Add credits to your account.", "Go to openrouter.ai/credits and add a balance ($50 recommended). Turn on auto top-up so your agent never runs out."],
+      ["Open the Keys page.", "Click your profile icon in the top right, choose \"Keys\" — or just go to openrouter.ai/keys."],
+      ["Click \"Create Key\" and name it [your agent name]-1.", "For example: Jane-1. You can leave the credit limit blank."],
+      ["Copy the full key (it starts with sk-or-v1-).", "OpenRouter only shows it once. Paste it into the OpenRouter API Key field."],
+    ],
+  },
+};
+
+// ============================================================================
+// SMALL UI PIECES
+// ============================================================================
+
+const inputClass = "w-full px-4 py-3 bg-card border-2 border-ink/25 focus:border-ink focus:outline-none focus:shadow-brut-sm transition-all text-sm placeholder:text-ink/30";
+
+// Rough plan brackets for an existing OpenAI / Grok subscription. Price-anchored so a
+// client recognizes their bracket at a glance; Alex confirms the exact plan on the call.
+const SUB_TIERS = ["Free", "Around $20 – $30 / month", "Around $100+ / month", "Not sure — we'll confirm"];
+
+function Label({ children, required }) {
+  return (
+    <label className="block mono text-xs font-semibold uppercase tracking-widest text-ink/80 mb-2">
+      {children} {required && <span className="text-accent">*</span>}
+    </label>
+  );
+}
+
+function Field({ label, required, hint, howto, onHowto, children }) {
+  return (
+    <div className="mb-6">
+      <div className="flex items-baseline justify-between gap-3 mb-2">
+        <label className="block mono text-xs font-semibold uppercase tracking-widest text-ink/80">
+          {label} {required && <span className="text-accent">*</span>}
+        </label>
+        {howto && (
+          <button
+            type="button"
+            onClick={onHowto}
+            className="mono text-[11px] font-semibold uppercase tracking-widest text-accent hover:text-ink underline decoration-2 underline-offset-2 whitespace-nowrap"
+          >
+            ⓘ {howto}
+          </button>
+        )}
+      </div>
+      {children}
+      {hint && <p className="text-xs text-ink/50 mt-1.5">{hint}</p>}
+    </div>
+  );
+}
+
+function HowToModal({ content, onClose }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center px-4 py-6 overlay-in" style={{ background: "rgba(24,24,24,0.5)" }}>
+      <div className="bg-card border-2 border-ink shadow-brut-lg max-w-lg w-full max-h-full flex flex-col">
+        <div className="flex items-center justify-between p-5 border-b-2 border-ink">
+          <h3 className="text-lg">{content.title}</h3>
+          <button onClick={onClose} className="w-8 h-8 hover:bg-ink/5 flex items-center justify-center text-ink/60 font-black" aria-label="Close">✕</button>
+        </div>
+        <div className="overflow-y-auto p-6">
+          <ol className="space-y-4">
+            {content.steps.map((s, i) => (
+              <li key={i} className="flex gap-3">
+                <div className="w-7 h-7 bg-ink text-accent display font-black flex items-center justify-center flex-shrink-0 text-sm circle">{i + 1}</div>
+                <div className="flex-1 pt-0.5 min-w-0">
+                  <div className="text-sm font-semibold text-ink">{s[0]}</div>
+                  {s[1] && <div className="text-sm text-ink/65 mt-0.5 leading-relaxed">{s[1]}</div>}
+                  {s[2] && <img src={s[2]} alt="" className="mt-2 w-full max-w-xs border-2 border-ink" />}
+                </div>
+              </li>
+            ))}
+          </ol>
+        </div>
+        <div className="border-t-2 border-ink p-4 bg-paper">
+          <button onClick={onClose} className="w-full display font-black text-xs uppercase tracking-widest bg-ink text-accent border-2 border-ink px-6 py-3 hover:bg-ink/90 transition-all">
+            Got it
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// APP
+// ============================================================================
+
+const initialData = {
+  agentType: "",
+  agentTypeOther: "",
+  clientName: "",
+  companyName: "",
+  websites: "",
+  timezone: "",
+  timezoneOther: "",
+  telegramUserIds: [{ name: "", role: "", id: "" }],   // one or more; shared agents whitelist several people (name + role are labels)
+  agentName: "",
+  botToken: "",
+  apiKey: "",
+  subOpenAI: false,
+  subOpenAITier: "",
+  subGrok: false,
+  subGrokTier: "",
+  commStyle: "",
+  businessContext: "",
+  extraSecrets: [],  // optional [{ label, secret }] — anything else that needs encrypting
+  pfpChoice: null,   // null = not answered yet | { none:true } | { n, id, name }
+  consent: false,
+};
+
+// ?preview=faces jumps straight to the thank-you page with the gallery open —
+// a shareable way for the team to see it without filling out the whole form.
+const PREVIEW = new URLSearchParams(window.location.search).get("preview") === "faces";
+
+function App() {
+  const [data, setData] = useState(initialData);
+  const [modal, setModal] = useState(null);
+  const [phase, setPhase] = useState(PREVIEW ? "done" : "form"); // form | submitting | done | error
+  const [errorMsg, setErrorMsg] = useState("");
+  const [showBot, setShowBot] = useState(false);
+  const [showKey, setShowKey] = useState(false);
+  const [showPicker, setShowPicker] = useState(false);
+  const [pfps, setPfps] = useState(AGENT_PFPS_FALLBACK);   // live list, falls back to hard-coded
+
+  // Stream the current face list from the Drive folder on load (falls back silently).
+  useEffect(() => {
+    fetchPfpsLive((list) => { if (list && list.length) setPfps(list); });
+  }, []);
+
+  const update = (patch) => setData(d => ({ ...d, ...patch }));
+
+  // Telegram ID list helpers
+  const setTgField = (i, field, val) => setData(d => {
+    const next = d.telegramUserIds.map((p, x) => x === i ? { ...p, [field]: val } : p);
+    return { ...d, telegramUserIds: next };
+  });
+  const addTgId = () => setData(d => ({ ...d, telegramUserIds: [...d.telegramUserIds, { name: "", role: "", id: "" }] }));
+  const removeTgId = (i) => setData(d => ({ ...d, telegramUserIds: d.telegramUserIds.filter((_, x) => x !== i) }));
+
+  // Optional extra secrets (label + value), encrypted individually like the rest.
+  const addExtra = () => setData(d => ({ ...d, extraSecrets: [...d.extraSecrets, { label: "", secret: "" }] }));
+  const setExtra = (i, patch) => setData(d => {
+    const next = d.extraSecrets.map((row, x) => x === i ? { ...row, ...patch } : row);
+    return { ...d, extraSecrets: next };
+  });
+  const removeExtra = (i) => setData(d => ({ ...d, extraSecrets: d.extraSecrets.filter((_, x) => x !== i) }));
+
+  const valid = useMemo(() => {
+    const typeOk = data.agentType && (data.agentType !== "Other" || data.agentTypeOther.trim().length > 1);
+    const tzOk = data.timezone && (data.timezone !== "Other" || data.timezoneOther.trim().length > 1);
+    const tgOk = data.telegramUserIds.some(p => p.id.trim().length >= 3);
+    // Extra secrets are optional, but any that were filled in must fit in one RSA block.
+    const extrasOk = data.extraSecrets.every(r => !r.secret.trim() || byteLen(r.secret) <= MAX_SECRET_BYTES);
+    return (
+      extrasOk &&
+      typeOk &&
+      data.clientName.trim().length >= 2 &&
+      data.companyName.trim().length >= 2 &&
+      data.websites.trim().length >= 3 &&
+      tzOk &&
+      tgOk &&
+      data.agentName.trim().length >= 2 &&
+      data.botToken.trim().length >= 10 &&
+      data.apiKey.trim().length >= 10 &&
+      data.pfpChoice !== null &&
+      data.consent === true
+    );
+  }, [data]);
+
+  const slug = (s) => (s || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+
+  const submit = async () => {
+    if (!valid || phase === "submitting") return;
+    setPhase("submitting");
+    setErrorMsg("");
+    try {
+      // Collect the Telegram people who have an ID. The IDs are encrypted (comma-joined,
+      // same format Tess already reads); the name + role travel as plaintext labels in the
+      // SAME order, so each decrypted ID lines up with its person.
+      const tgPeople = data.telegramUserIds.filter(p => p.id.trim());
+      const tgList = tgPeople.map(p => p.id.trim()).join(", ");
+      const tgLabels = tgPeople.map(p => ({ name: p.name.trim(), role: p.role.trim() }));
+
+      // Encrypt the sensitive fields in the browser before anything leaves the page.
+      const [encTgIds, encBot, encKey] = await Promise.all([
+        encryptField(tgList),
+        encryptField(data.botToken.trim()),
+        encryptField(data.apiKey.trim()),
+      ]);
+
+      // Encrypt any extra secrets the client added (skipping blank rows).
+      const filledExtras = data.extraSecrets.filter(r => r.secret.trim());
+      const encExtras = [];
+      for (const row of filledExtras) {
+        encExtras.push({ label: row.label.trim(), enc_value: await encryptField(row.secret.trim()) });
+      }
+
+      const timezone = data.timezone === "Other" ? data.timezoneOther.trim() : data.timezone;
+
+      // Existing AI subscriptions the client already pays for (plaintext — for our records).
+      // We don't sign in here; Alex confirms the exact plan / OAuth with them on the call.
+      const existingSubs = [];
+      if (data.subOpenAI) existingSubs.push({ provider: "OpenAI (ChatGPT)", tier: data.subOpenAITier || "(not specified)" });
+      if (data.subGrok) existingSubs.push({ provider: "Grok (xAI)", tier: data.subGrokTier || "(not specified)" });
+
+      const today = new Date().toISOString().slice(0, 10).replace(/-/g, "");
+      const filename = `SNForge-${slug(data.companyName) || "client"}_${slug(data.agentName) || "agent"}_setup_${today}.txt`;
+
+      const payload = {
+        kind: "agent_setup_v2",
+        schema_version: SCHEMA_VERSION,
+        encryption_key_id: KEY_ID,
+        filename,
+        agentType: data.agentType === "Other" ? data.agentTypeOther.trim() : data.agentType,
+        clientName: data.clientName.trim(),
+        companyName: data.companyName.trim(),
+        websites: data.websites.trim(),
+        timezone,
+        agentName: data.agentName.trim(),
+        commStyle: data.commStyle.trim(),
+        businessContext: data.businessContext.trim(),
+        // Existing AI subscriptions the client already pays for (plaintext, for our records).
+        existing_subscriptions: existingSubs,
+        consent: data.consent === true,
+        // Chosen agent face (not sensitive). pfp_id lets the backend attach + copy the
+        // actual image so the record survives even if the Drive library changes later.
+        pfp_choice: data.pfpChoice ? (data.pfpChoice.none ? "No picture yet (client will choose their own)" : ("#" + data.pfpChoice.n + " — " + data.pfpChoice.name)) : "",
+        pfp_id: (data.pfpChoice && !data.pfpChoice.none) ? data.pfpChoice.id : "",
+        pfp_name: (data.pfpChoice && !data.pfpChoice.none) ? data.pfpChoice.name : "",
+        // Who the Telegram IDs belong to (plaintext labels, aligned with the decrypted IDs).
+        telegram_people: tgLabels,
+        // encrypted (base64 RSA-OAEP ciphertext)
+        enc_telegramUserIds: encTgIds,
+        enc_botToken: encBot,
+        enc_apiKey: encKey,
+        extra_secrets: encExtras,   // [{ label, enc_value }] — same ENC format as the rest
+        capturedAt: new Date().toString(),
+      };
+
+      // text/plain avoids a CORS preflight; Apps Script parses the body as JSON.
+      await fetch(BACKEND_URL, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify(payload),
+      });
+
+      if (typeof confetti === "function") {
+        confetti({ particleCount: 70, spread: 75, startVelocity: 45, gravity: 0.9, ticks: 200, origin: { x: 0.5, y: 0.5 }, colors: ["#3EB8C8", "#181818", "#BBB469", "#F7F3EA"] });
+      }
+      setPhase("done");
+    } catch (e) {
+      setErrorMsg(String(e));
+      setPhase("error");
+    }
+  };
+
+  if (phase === "done") {
+    return <ThankYou data={data} />;
+  }
+
+  return (
+    <div className="min-h-screen flex flex-col">
+      <Header />
+      <main className="flex-1 w-full max-w-2xl mx-auto px-6 py-10 md:py-14">
+        <div className="mb-10">
+          <div className="mono text-xs text-accent uppercase tracking-widest font-semibold mb-3 flex items-center gap-2">
+            <span className="inline-block w-6 h-px bg-accent"></span>
+            Agent Setup
+          </div>
+          <h1 className="text-3xl md:text-5xl mb-4">Let's build your agent.</h1>
+          <p className="text-ink/75 text-base md:text-lg leading-relaxed">
+            Fill this out and our team gets everything needed to deploy your agent. It takes about 10 minutes. A few fields need a key or token — each has a step-by-step guide right next to it. Your keys are encrypted the moment you enter them.
+          </p>
+        </div>
+
+        {/* Agent type */}
+        <Field label="Agent type" required>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            {AGENT_TYPES.map(t => (
+              <button
+                key={t}
+                type="button"
+                onClick={() => update({ agentType: t })}
+                className={`chip text-sm px-3 py-3 border-2 transition-all font-medium ${
+                  data.agentType === t ? "bg-ink text-paper border-ink" : "bg-card border-ink/25 hover:border-ink hover:bg-accentSoft"
+                }`}
+              >
+                {t}
+              </button>
+            ))}
+          </div>
+          {data.agentType === "Other" && (
+            <input
+              type="text"
+              value={data.agentTypeOther}
+              onChange={e => update({ agentTypeOther: e.target.value })}
+              placeholder="Describe the agent type you need..."
+              className={inputClass + " mt-2"}
+              autoFocus
+            />
+          )}
+        </Field>
+
+        {/* Client name */}
+        <Field label="Your name" required>
+          <input type="text" value={data.clientName} onChange={e => update({ clientName: e.target.value })} placeholder="Jane Smith" className={inputClass} />
+        </Field>
+
+        {/* Company */}
+        <Field label="Company name" required>
+          <input type="text" value={data.companyName} onChange={e => update({ companyName: e.target.value })} placeholder="Acme Realty" className={inputClass} />
+        </Field>
+
+        {/* Websites */}
+        <Field label="Company website" required hint="If you have more than one, separate them with commas.">
+          <input type="text" value={data.websites} onChange={e => update({ websites: e.target.value })} placeholder="acme.com, acme-listings.com" className={inputClass} />
+        </Field>
+
+        {/* Timezone */}
+        <Field label="Your timezone" required hint="So your agent handles scheduling, reminders, and daily briefs at the right times.">
+          <select value={data.timezone} onChange={e => update({ timezone: e.target.value })} className={inputClass}>
+            <option value="" disabled>Select your timezone…</option>
+            {TIMEZONES.map(tz => <option key={tz} value={tz}>{tz}</option>)}
+          </select>
+          {data.timezone === "Other" && (
+            <input type="text" value={data.timezoneOther} onChange={e => update({ timezoneOther: e.target.value })} placeholder="Which timezone are you in?" className={inputClass + " mt-2"} autoFocus />
+          )}
+        </Field>
+
+        {/* Telegram User ID(s) */}
+        <Field label="Your Telegram User ID" required howto="How to find this" onHowto={() => setModal("tgUserId")} hint="A ~10-digit number that tells your agent who you are. Add more than one if a few people will share this agent — the name and role help your agent know who it's talking to.">
+          <div className="space-y-4">
+            {data.telegramUserIds.map((p, i) => (
+              <div key={i} className="border-l-2 border-accent pl-4">
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="mono text-[11px] uppercase tracking-widest font-semibold text-ink/60">{i === 0 ? "You" : "Person " + (i + 1)}</span>
+                  {data.telegramUserIds.length > 1 && (
+                    <button type="button" onClick={() => removeTgId(i)} className="mono text-[11px] text-ink/40 hover:text-[#C0392B] transition-colors">✕ remove</button>
+                  )}
+                </div>
+                <div className="grid grid-cols-2 gap-2 mb-2">
+                  <input type="text" value={p.name} onChange={e => setTgField(i, "name", e.target.value)} placeholder={i === 0 ? "Your name" : "Name (e.g. Jane)"} className={inputClass} />
+                  <input type="text" value={p.role} onChange={e => setTgField(i, "role", e.target.value)} placeholder="Role (e.g. Manager)" className={inputClass} />
+                </div>
+                <input type="text" value={p.id} onChange={e => setTgField(i, "id", e.target.value)} placeholder={i === 0 ? "Telegram ID — 123456789" : "Their Telegram ID"} className={inputClass} />
+              </div>
+            ))}
+          </div>
+          <button type="button" onClick={addTgId} className="mono text-[11px] font-semibold uppercase tracking-widest text-accent hover:text-ink mt-3">
+            + Add another person
+          </button>
+        </Field>
+
+        <div className="my-8 border-t-2 border-ink/10"></div>
+
+        {/* Agent name */}
+        <Field label="Your agent's name" required hint="What you'll call your agent. Anything you like.">
+          <input type="text" value={data.agentName} onChange={e => update({ agentName: e.target.value })} placeholder="Atlas" className={inputClass} />
+        </Field>
+
+        {/* Bot token */}
+        <Field label="Telegram Bot Token" required howto="How to create your bot" onHowto={() => setModal("botToken")} hint="🔒 Encrypted before it leaves this page.">
+          <div className="relative">
+            <input
+              type={showBot ? "text" : "password"}
+              value={data.botToken}
+              onChange={e => update({ botToken: e.target.value })}
+              placeholder="123456789:AAExampleTokenFromBotFather"
+              className={inputClass + " pr-16"}
+            />
+            <button type="button" onClick={() => setShowBot(s => !s)} className="absolute right-3 top-1/2 -translate-y-1/2 mono text-[11px] uppercase tracking-widest text-ink/50 hover:text-ink">
+              {showBot ? "Hide" : "Show"}
+            </button>
+          </div>
+        </Field>
+
+        {/* API key */}
+        <Field label="OpenRouter API Key" required howto="How to get your key" onHowto={() => setModal("apiKey")} hint="🔒 Encrypted before it leaves this page.">
+          <div className="relative">
+            <input
+              type={showKey ? "text" : "password"}
+              value={data.apiKey}
+              onChange={e => update({ apiKey: e.target.value })}
+              placeholder="sk-or-v1-..."
+              className={inputClass + " pr-16"}
+            />
+            <button type="button" onClick={() => setShowKey(s => !s)} className="absolute right-3 top-1/2 -translate-y-1/2 mono text-[11px] uppercase tracking-widest text-ink/50 hover:text-ink">
+              {showKey ? "Hide" : "Show"}
+            </button>
+          </div>
+        </Field>
+
+        {/* Existing AI subscriptions — OpenAI / Grok (plaintext, for our records) */}
+        <Field label="Existing AI subscriptions" hint="Optional. If you already pay for ChatGPT (OpenAI) or Grok, your agent can run on that subscription with the new setup — no separate usage billing. Check any you have and roughly which plan.">
+          <div className="space-y-3">
+            {/* OpenAI */}
+            <div className="border-l-2 border-ink/15 pl-4">
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input type="checkbox" checked={data.subOpenAI} onChange={e => update({ subOpenAI: e.target.checked, subOpenAITier: e.target.checked ? data.subOpenAITier : "" })} className="w-5 h-5 flex-shrink-0" />
+                <span className="text-sm">OpenAI (ChatGPT)</span>
+              </label>
+              {data.subOpenAI && (
+                <select value={data.subOpenAITier} onChange={e => update({ subOpenAITier: e.target.value })} className={inputClass + " mt-2"}>
+                  <option value="" disabled>Which plan do you have?</option>
+                  {SUB_TIERS.map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
+              )}
+            </div>
+            {/* Grok */}
+            <div className="border-l-2 border-ink/15 pl-4">
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input type="checkbox" checked={data.subGrok} onChange={e => update({ subGrok: e.target.checked, subGrokTier: e.target.checked ? data.subGrokTier : "" })} className="w-5 h-5 flex-shrink-0" />
+                <span className="text-sm">Grok (xAI)</span>
+              </label>
+              {data.subGrok && (
+                <select value={data.subGrokTier} onChange={e => update({ subGrokTier: e.target.value })} className={inputClass + " mt-2"}>
+                  <option value="" disabled>Which plan do you have?</option>
+                  {SUB_TIERS.map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
+              )}
+            </div>
+          </div>
+        </Field>
+
+        <div className="my-8 border-t-2 border-ink/10"></div>
+
+        {/* Comm style */}
+        <Field label="Preferred communication style" hint="How should your agent talk to you? Formal or casual, short or detailed, any quirks — describe it in your words.">
+          <textarea value={data.commStyle} onChange={e => update({ commStyle: e.target.value })} rows={3} placeholder="Friendly and to the point. Skip the fluff. Use bullet points for anything with more than two items..." className={inputClass + " resize-none"} />
+        </Field>
+
+        {/* Business context */}
+        <Field label="Anything else we should know" hint="Business details, use cases, ideas, daily tasks, current projects — anything that gives your agent useful context.">
+          <textarea value={data.businessContext} onChange={e => update({ businessContext: e.target.value })} rows={5} placeholder="We're a boutique real estate team. Day to day we juggle showings, follow-ups, and paperwork. I'd love the agent to draft my follow-up emails and keep my calendar sane..." className={inputClass + " resize-none"} />
+        </Field>
+
+        <div className="my-8 border-t-2 border-ink/10"></div>
+
+        {/* Extra secrets — optional catch-all so nobody has to leave this page */}
+        <Field
+          label="Anything else we asked you for?"
+          hint="Only if we asked. Another platform's API key, a login, a token — add it here so you don't have to leave this page. Encrypted exactly like the fields above."
+        >
+          {data.extraSecrets.length > 0 && (
+            <div className="space-y-4 mb-3">
+              {data.extraSecrets.map((row, i) => {
+                const n = byteLen(row.secret);
+                const over = n > MAX_SECRET_BYTES;
+                return (
+                  <div key={i} className="border-l-2 border-accent pl-4">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="mono text-[11px] uppercase tracking-widest font-semibold text-ink/60">What is it?</span>
+                      <button type="button" onClick={() => removeExtra(i)} className="mono text-[11px] text-ink/40 hover:text-[#C0392B] transition-colors">✕ remove</button>
+                    </div>
+                    <input
+                      type="text"
+                      value={row.label}
+                      onChange={e => setExtra(i, { label: e.target.value })}
+                      placeholder="e.g. Follow Up Boss API key"
+                      className={inputClass + " mb-2"}
+                    />
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="mono text-[11px] uppercase tracking-widest font-semibold text-ink/60">The value</span>
+                      <span className={`mono text-[11px] ${over ? "text-[#C0392B] font-semibold" : "text-ink/40"}`}>{n} / {MAX_SECRET_BYTES}</span>
+                    </div>
+                    <textarea
+                      rows={2}
+                      value={row.secret}
+                      onChange={e => setExtra(i, { secret: e.target.value })}
+                      placeholder="Paste it here"
+                      className={inputClass + " mono resize-none " + (over ? "border-[#C0392B]" : "")}
+                    />
+                    {over && (
+                      <p className="text-xs text-[#C0392B] mt-1.5">That's too long to encrypt in one go. Split it across two entries.</p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          <button
+            type="button"
+            onClick={addExtra}
+            className="mono text-[11px] font-semibold uppercase tracking-widest text-accent hover:text-ink border-2 border-accent hover:border-ink px-4 py-2 transition-colors"
+          >
+            + Add {data.extraSecrets.length > 0 ? "another" : "a secret"}
+          </button>
+        </Field>
+
+        <div className="my-8 border-t-2 border-ink/10"></div>
+
+        {/* Agent face */}
+        <Field label="Your agent's face" required hint="Give your agent a face for Telegram. Pick one from our library, or choose your own later.">
+          {!data.pfpChoice && (
+            <button
+              type="button"
+              onClick={() => setShowPicker(true)}
+              className="w-full flex items-center justify-center gap-2 px-4 py-4 bg-card border-2 border-ink hover:bg-accentSoft hover:shadow-brut-sm hover:-translate-x-0.5 hover:-translate-y-0.5 transition-all display font-bold uppercase tracking-wide text-sm"
+            >
+              🎨 Choose your agent's face →
+            </button>
+          )}
+          {data.pfpChoice && data.pfpChoice.none && (
+            <div className="flex items-center justify-between gap-3 px-4 py-3 bg-card border-2 border-ink">
+              <span className="text-sm text-ink/70">No picture for now — you'll add your own later.</span>
+              <button type="button" onClick={() => setShowPicker(true)} className="mono text-[11px] uppercase tracking-widest text-accent hover:text-ink font-semibold flex-shrink-0">Change</button>
+            </div>
+          )}
+          {data.pfpChoice && !data.pfpChoice.none && (
+            <div className="flex items-center gap-3 px-3 py-3 bg-card border-2 border-ink">
+              <img
+                src={pfpThumb(data.pfpChoice.id)}
+                referrerPolicy="no-referrer"
+                onError={(e) => { if (!e.target.dataset.fb) { e.target.dataset.fb = "1"; e.target.src = pfpFull(data.pfpChoice.id); } }}
+                className="w-14 h-14 object-cover border-2 border-ink flex-shrink-0"
+                alt="Selected agent face"
+              />
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-semibold text-ink">Face #{data.pfpChoice.n} selected ✓</div>
+                <div className="mono text-[11px] text-ink/50 truncate">{data.pfpChoice.name}</div>
+              </div>
+              <button type="button" onClick={() => setShowPicker(true)} className="mono text-[11px] uppercase tracking-widest text-accent hover:text-ink font-semibold flex-shrink-0">Change</button>
+            </div>
+          )}
+        </Field>
+
+        {/* Submit */}
+        <div className="mt-10 pt-6 border-t-2 border-ink">
+          {/* Consent */}
+          <label className="flex items-start gap-3 mb-6 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={data.consent}
+              onChange={e => update({ consent: e.target.checked })}
+              className="mt-0.5 w-5 h-5 flex-shrink-0"
+            />
+            <span className="text-sm text-ink/75 leading-relaxed">
+              I authorize Strategy Ninjas to configure and deploy an AI agent using the information and credentials I've provided.
+            </span>
+          </label>
+
+          {phase === "error" && (
+            <div className="mb-4 p-4 border-2 border-ink bg-accentSoft text-sm">
+              <div className="font-semibold mb-1">Something went wrong submitting.</div>
+              <div className="text-ink/70">Please try again in a moment. If it keeps happening, email info@sn3group.ai.</div>
+            </div>
+          )}
+          <button
+            onClick={submit}
+            disabled={!valid || phase === "submitting"}
+            className="w-full display font-black text-sm uppercase tracking-widest bg-accent text-ink border-2 border-ink px-6 py-4 shadow-brut hover:shadow-brut-hover hover:-translate-x-0.5 hover:-translate-y-0.5 active:translate-x-0 active:translate-y-0 active:shadow-brut-sm disabled:bg-ink/10 disabled:text-ink/30 disabled:shadow-none disabled:cursor-not-allowed disabled:hover:translate-x-0 disabled:hover:translate-y-0 transition-all flex items-center justify-center gap-3"
+          >
+            {phase === "submitting" ? (
+              <>
+                <svg className="spin-slow circle" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#181818" strokeWidth="3" strokeLinecap="round"><circle cx="12" cy="12" r="9" strokeDasharray="40 60" /></svg>
+                Submitting...
+              </>
+            ) : "Submit my setup →"}
+          </button>
+          <p className="text-xs text-ink/50 text-center mt-3">
+            🔒 Your Telegram ID(s), bot token, and API key are encrypted in your browser before they're sent. Only the Strategy Ninjas team can read them.
+          </p>
+        </div>
+      </main>
+
+      {modal && <HowToModal content={HOWTO[modal]} onClose={() => setModal(null)} />}
+      {showPicker && (
+        <FacePickerModal
+          pfps={pfps}
+          current={data.pfpChoice}
+          agentName={data.agentName}
+          onChoose={(choice) => { update({ pfpChoice: choice }); setShowPicker(false); }}
+          onClose={() => setShowPicker(false)}
+        />
+      )}
+    </div>
+  );
+}
+
+function FacePickerModal({ pfps, current, agentName, onChoose, onClose }) {
+  const [sel, setSel] = useState(current && !current.none ? current : null);
+  const agent = agentName || "your agent";
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center px-4 py-6 overlay-in" style={{ background: "rgba(24,24,24,0.6)" }}>
+      <div className="bg-card border-2 border-ink shadow-brut-lg max-w-2xl w-full max-h-full flex flex-col">
+        <div className="flex items-center justify-between p-5 border-b-2 border-ink">
+          <div>
+            <div className="mono text-[10px] text-accent uppercase tracking-widest font-semibold">Pick a face</div>
+            <h3 className="text-lg">Give {agent} a face.</h3>
+          </div>
+          <button onClick={onClose} className="w-8 h-8 hover:bg-ink/5 flex items-center justify-center text-ink/60 font-black" aria-label="Close">✕</button>
+        </div>
+
+        <div className="overflow-y-auto p-5">
+          <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+            {pfps.map((pfp) => {
+              const isSel = sel && sel.n === pfp.n;
+              return (
+                <button
+                  key={pfp.n}
+                  type="button"
+                  onClick={() => setSel(pfp)}
+                  className={`relative aspect-square bg-card overflow-hidden border-2 transition-all ${isSel ? "border-accent shadow-brut -translate-x-0.5 -translate-y-0.5" : "border-ink hover:shadow-brut-sm hover:-translate-x-0.5 hover:-translate-y-0.5"}`}
+                >
+                  <img
+                    src={pfpThumb(pfp.id)}
+                    alt={`Agent face ${pfp.n}`}
+                    loading="eager"
+                    referrerPolicy="no-referrer"
+                    onError={(e) => { if (!e.target.dataset.fb) { e.target.dataset.fb = "1"; e.target.src = pfpFull(pfp.id); } }}
+                    className="w-full h-full object-cover"
+                  />
+                  {isSel && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-accent/25 overlay-in">
+                      <div className="w-9 h-9 bg-accent text-ink border-2 border-ink flex items-center justify-center display font-black circle scale-in">✓</div>
+                    </div>
+                  )}
+                  <div className="absolute top-1 left-1 mono text-[10px] font-semibold px-1.5 py-0.5 bg-ink/75 text-paper">{pfp.n}</div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="border-t-2 border-ink p-4 bg-paper flex flex-col sm:flex-row items-center gap-3">
+          <button
+            type="button"
+            onClick={() => onChoose({ none: true })}
+            className="mono text-[11px] uppercase tracking-widest font-semibold text-ink/60 hover:text-ink underline decoration-2 underline-offset-2 order-2 sm:order-1 sm:mr-auto"
+          >
+            No picture right now / I'll choose my own
+          </button>
+          <button
+            type="button"
+            onClick={() => sel && onChoose(sel)}
+            disabled={!sel}
+            className="order-1 sm:order-2 w-full sm:w-auto display font-black text-xs uppercase tracking-widest bg-ink text-accent border-2 border-ink px-6 py-3 hover:bg-ink/90 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+          >
+            {sel ? `Use face #${sel.n} →` : "Select a face"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Header() {
+  return (
+    <header className="border-b-2 border-ink bg-paper sticky top-0 z-40">
+      <div className="max-w-2xl mx-auto px-6 py-4 flex items-center gap-3">
+        <img src="../sn-logo.png" alt="Strategy Ninjas" className="h-9 w-auto block flex-shrink-0" />
+        <div className="mono text-[10px] text-ink/60 uppercase tracking-widest font-semibold hidden sm:block">Agent Setup</div>
+        <a href="../quick-encrypt/" className="ml-auto text-right group leading-tight">
+          <div className="mono text-[9px] text-ink/45 uppercase tracking-widest hidden sm:block">Need something quick?</div>
+          <div className="mono text-[11px] font-semibold uppercase tracking-widest text-accent group-hover:text-ink transition-colors">🔐 Quick Encrypt →</div>
+        </a>
+      </div>
+    </header>
+  );
+}
+
+function ThankYou({ data }) {
+  const agent = data.agentName || "your agent";
+  const first = data.clientName ? `, ${data.clientName.split(" ")[0]}` : "";
+  const choice = data.pfpChoice;
+  const hasFace = choice && !choice.none;
+
+  useEffect(() => {
+    if (typeof confetti === "function") {
+      confetti({ particleCount: 90, spread: 82, startVelocity: 45, gravity: 0.9, ticks: 220, origin: { x: 0.5, y: 0.45 }, colors: ["#3EB8C8", "#181818", "#BBB469", "#F7F3EA"] });
+    }
+  }, []);
+
+  const download = () => {
+    if (!hasFace) return;
+    const a = document.createElement("a");
+    a.href = pfpDownload(choice.id);
+    a.download = (agent.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "agent") + "-face.png";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
+
+  return (
+    <div className="min-h-screen flex flex-col">
+      <Header />
+      <main className="flex-1 flex flex-col items-center px-6 py-16">
+        <div className="max-w-lg text-center fade-in">
+          <div className="w-20 h-20 bg-ink text-accent border-2 border-ink shadow-brut mx-auto mb-8 flex items-center justify-center display font-black text-4xl scale-in circle">✓</div>
+          <div className="mono text-xs text-accent uppercase tracking-widest font-semibold mb-3">Setup received</div>
+          <h1 className="text-3xl md:text-4xl mb-4">You're all set{first}.</h1>
+          <p className="text-ink/75 text-base md:text-lg leading-relaxed mb-8">
+            We've got everything we need to build <span className="serif italic font-semibold">{agent}</span>. Our team will take it from here and reach out with next steps. Welcome aboard.
+          </p>
+          <div className="bg-card border-2 border-ink shadow-brut p-6 text-left">
+            <div className="mono text-xs text-ink/60 uppercase tracking-widest font-semibold mb-3">What happens next</div>
+            <ol className="text-sm text-ink/80 space-y-2 list-decimal list-inside">
+              <li>We schedule your launch call.</li>
+              <li>We build your agent.</li>
+              <li>We launch it together on that call.</li>
+            </ol>
+          </div>
+
+          <p className="text-xs text-ink/50 mt-10">Questions? Reach us anytime at info@sn3group.ai.</p>
+        </div>
+
+        {hasFace && (
+          <div className="w-full max-w-md mt-12 fade-in">
+            <div className="text-center mb-5">
+              <div className="mono text-xs text-accent uppercase tracking-widest font-semibold mb-2">🎉 Meet your agent</div>
+              <h2 className="text-2xl md:text-3xl">Say hi to {agent}.</h2>
+            </div>
+            <div className="bg-card border-2 border-ink shadow-brut p-6 flex flex-col items-center">
+              <img
+                src={pfpThumb(choice.id)}
+                referrerPolicy="no-referrer"
+                onError={(e) => { if (!e.target.dataset.fb) { e.target.dataset.fb = "1"; e.target.src = pfpFull(choice.id); } }}
+                className="w-40 h-40 object-cover border-2 border-ink"
+                alt={agent}
+              />
+              <div className="mono text-[11px] text-ink/50 mt-3">Face #{choice.n} · {choice.name}</div>
+              <button
+                onClick={download}
+                className="mt-5 display font-bold uppercase tracking-wide text-sm px-6 py-3 bg-ink text-paper border-2 border-ink shadow-brut hover:bg-accent hover:text-ink transition-all"
+              >
+                ⬇ Download {agent}'s face
+              </button>
+            </div>
+            <div className="mt-5 bg-accentSoft border-2 border-ink p-4 text-left">
+              <div className="mono text-[11px] text-ink/70 uppercase tracking-widest font-semibold mb-3">Set it as your agent's photo — two ways</div>
+              <div className="mb-3">
+                <div className="text-sm font-semibold text-ink mb-1">Right on your bot (fastest)</div>
+                <p className="text-sm text-ink/80">Open your bot's chat, tap its name at the top to open its profile, tap <span className="font-semibold">Edit</span>, then tap the photo icon and upload the image.</p>
+              </div>
+              <div className="border-t border-ink/15 pt-3">
+                <div className="text-sm font-semibold text-ink mb-1">Or through @BotFather</div>
+                <p className="text-sm text-ink/80">Message <span className="mono font-semibold">@BotFather</span>, send <span className="mono font-semibold">/setuserpic</span>, choose your bot, and upload the image. ✨</p>
+              </div>
+            </div>
+            <p className="text-center text-xs text-ink/40 mt-5">Our team has this on file too — we'll set it up with you on the launch call.</p>
+          </div>
+        )}
+
+        {choice && choice.none && (
+          <div className="w-full max-w-md mt-12 text-center fade-in">
+            <p className="text-sm text-ink/60">Want to give {agent} a face? <a href={PFP_FOLDER_URL} target="_blank" rel="noopener noreferrer" className="underline hover:text-accent">Browse our library →</a> and send us your pick anytime.</p>
+          </div>
+        )}
+      </main>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>
