@@ -127,8 +127,10 @@ const BACKEND_URL = "https://script.google.com/macros/s/AKfycbwlDjUnvf-2SSI-vVdI
 const KEY_ID = "sn-intake-2026-07";
 const PUBLIC_KEY_SPKI_B64 = "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAqdrQfCwJpaHbHe54lugac03rbMCT6Vtu+ZKWtyA9J9ynWxua5qPlv8uzVsmugnlgE+0Zt3NgqOELwUcfsxRoClnY6hvv11NubZrzdV94W6kpvJ9sp7jBF3YwFVOK29hbNZVZcgm3SuIS1Uhu85rnsbfXvGy+pMONCBlWVzo3xWidxTyeszDFxCnfhJ1e/Q+rE1Ti2xD8Oe5WtI/ruCAI03Bk8XBrlERtDN4e3UX1uzaQeMT5jo9y+l97zSOVIkVUuzi85qN6PGIBpAAyqjy+f4tfk6G8QgapuXyaJI+KE55KLu0RY3DZssx3hVQGTCZ1a7ewT6f90kGVi6WyT49+wQIDAQAB";
 
-// RSA-2048 + OAEP(SHA-256) max plaintext = 256 - 2*32 - 2 = 190 bytes.
-const MAX_SECRET_BYTES = 190;
+// RSA-2048 + OAEP(SHA-256) max plaintext per block = 256 - 2*32 - 2 = 190 bytes.
+const MAX_SECRET_BYTES = 190;         // plaintext that fits in ONE encrypted block
+const RSA_BLOCK_BYTES = 256;          // size of each encrypted block
+const MAX_LONG_SECRET_BYTES = 8000;   // a secret can be long (JSON keys, PEM files)
 
 // ============================================================================
 // ENCRYPTION (Web Crypto, RSA-OAEP SHA-256) — same as the onboarding tool.
@@ -155,11 +157,19 @@ function getPublicKey() {
   }
   return _pubKeyPromise;
 }
+// A value longer than one block is split into 190-byte pieces; each piece becomes one
+// 256-byte RSA block and the blocks are joined end to end. A short value is a single block,
+// exactly as before. To decrypt: split into 256-byte blocks, decrypt each, join the bytes.
 async function encryptField(plaintext) {
   const key = await getPublicKey();
   const data = new TextEncoder().encode(plaintext);
-  const ct = await crypto.subtle.encrypt({ name: "RSA-OAEP" }, key, data);
-  return bytesToB64(ct);
+  const count = Math.ceil(data.length / MAX_SECRET_BYTES);
+  const out = new Uint8Array(count * RSA_BLOCK_BYTES);
+  for (let i = 0; i < count; i++) {
+    const piece = data.slice(i * MAX_SECRET_BYTES, (i + 1) * MAX_SECRET_BYTES);
+    out.set(new Uint8Array(await crypto.subtle.encrypt({ name: "RSA-OAEP" }, key, piece)), i * RSA_BLOCK_BYTES);
+  }
+  return bytesToB64(out);
 }
 
 // ============================================================================
@@ -182,17 +192,17 @@ function makeRow() {
       placeholder="e.g. Gmail app password, Stripe key, WiFi login" />
     <div class="flex items-center justify-between mb-1">
       <label class="mono text-[11px] uppercase tracking-widest font-semibold text-ink/70">Secret value</label>
-      <span class="counter mono text-[11px] text-ink/40">0 / ${MAX_SECRET_BYTES}</span>
+      <span class="counter mono text-[11px] text-ink/40">0 / ${MAX_LONG_SECRET_BYTES.toLocaleString()}</span>
     </div>
-    <textarea rows="2" class="secret-in w-full bg-card border-2 border-ink px-3 py-2 text-sm mono"
+    <textarea rows="3" class="secret-in w-full bg-card border-2 border-ink px-3 py-2 text-sm mono"
       placeholder="Paste the secret here"></textarea>
   `;
   const secret = row.querySelector(".secret-in");
   const counter = row.querySelector(".counter");
   secret.addEventListener("input", () => {
     const n = byteLen(secret.value);
-    counter.textContent = n + " / " + MAX_SECRET_BYTES;
-    const over = n > MAX_SECRET_BYTES;
+    counter.textContent = n.toLocaleString() + " / " + MAX_LONG_SECRET_BYTES.toLocaleString();
+    const over = n > MAX_LONG_SECRET_BYTES;
     counter.classList.toggle("text-[#C0392B]", over);
     counter.classList.toggle("font-semibold", over);
     secret.classList.toggle("border-[#C0392B]", over);
@@ -262,8 +272,8 @@ async function submit() {
     const label = r.querySelector(".label-in").value.trim();
     const secret = r.querySelector(".secret-in").value;
     if (!secret.trim()) continue; // skip empty rows
-    if (byteLen(secret) > MAX_SECRET_BYTES) {
-      return showError(`One secret is too long (${byteLen(secret)} bytes, max ${MAX_SECRET_BYTES}). Split it across two rows.`);
+    if (byteLen(secret) > MAX_LONG_SECRET_BYTES) {
+      return showError(`One secret is over the 8,000-character limit (${byteLen(secret).toLocaleString()}). Split it across two rows.`);
     }
     collected.push({ label, secret });
   }
