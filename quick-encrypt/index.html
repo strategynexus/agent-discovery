@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Strategy Ninjas — Quick Encrypt</title>
+<title>SN3 — Quick Encrypt</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700;900&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Source+Serif+4:ital,wght@0,400;0,600;0,700;0,900;1,400&display=swap" rel="stylesheet">
@@ -62,7 +62,7 @@
 
   <!-- Header -->
   <header class="flex items-center gap-3 py-6 border-b-2 border-ink mb-10">
-    <span class="display font-black text-xl tracking-tight">SN</span>
+    <img src="../sn3-logo.png" alt="SN3" class="h-9 w-auto block flex-shrink-0" />
     <span class="w-px h-6 bg-ink/30"></span>
     <span class="mono text-xs uppercase tracking-[0.25em] text-ink/70 font-semibold">Quick Encrypt</span>
   </header>
@@ -72,7 +72,7 @@
     <div class="mono text-[11px] text-accent uppercase tracking-[0.25em] font-semibold mb-3">Encrypted in your browser</div>
     <h1 class="text-5xl mb-4">Lock a secret.</h1>
     <p class="serif text-lg text-ink/75 leading-snug mb-8 max-w-xl">
-      Label what each secret is, paste the value, and hit encrypt. Everything is scrambled on your device before it's sent &mdash; only the Strategy Ninjas team can read it. Add as many as you need.
+      Label what each secret is, paste the value, and hit encrypt. Everything is scrambled on your device before it's sent &mdash; only the SN3 team can read it. Add as many as you need.
     </p>
 
     <div id="rows" class="space-y-5"></div>
@@ -90,7 +90,7 @@
     </button>
 
     <p class="mono text-[11px] text-ink/50 mt-5 leading-relaxed">
-      🔒 Each value is encrypted with the Strategy Ninjas public key (RSA-OAEP, SHA-256) before it leaves this page. The labels stay in plain text so the team knows what each secret is. We never see the raw values.
+      🔒 Each value is encrypted with the SN3 public key (RSA-OAEP, SHA-256) before it leaves this page. The labels stay in plain text so the team knows what each secret is. We never see the raw values.
     </p>
   </div>
 
@@ -101,7 +101,7 @@
     </div>
     <h1 class="text-4xl text-center mb-3">Encrypted &amp; sent.</h1>
     <p class="serif text-lg text-ink/75 text-center leading-snug mb-8 max-w-lg mx-auto">
-      Your secrets are locked and on their way to the Strategy Ninjas team. Here's the encrypted document &mdash; the raw values are unreadable without our private key.
+      Your secrets are locked and on their way to the SN3 team. Here's the encrypted document &mdash; the raw values are unreadable without our private key.
     </p>
 
     <div class="bg-accentSoft border-2 border-ink p-4">
@@ -245,7 +245,7 @@ function buildEnvelope(items) {
     L.push("       ENC:" + it.enc_value);
     L.push("");
   });
-  L.push(HEAVY, "  Decrypt with the Strategy Ninjas private key (same as intake).", HEAVY);
+  L.push(HEAVY, "  Decrypt with the SN3 private key (same as intake).", HEAVY);
   return L.join("\n");
 }
 
@@ -331,7 +331,7 @@ function showDone(envelope, filename, count) {
   done.classList.remove("hidden");
   document.getElementById("envelopeOut").value = envelope;
   document.getElementById("driveNote").textContent =
-    count + (count === 1 ? " secret" : " secrets") + " saved as " + filename + " for the SN team.";
+    count + (count === 1 ? " secret" : " secrets") + " saved as " + filename + " for the SN3 team.";
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
